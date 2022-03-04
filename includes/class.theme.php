@@ -113,7 +113,7 @@
         add_action('edit_user_profile', array($this, 'action_show_user_profile'));
         add_action('edit_user_profile_update', array($this, 'action_update_profile_fields'));
         add_action('enqueue_block_editor_assets', array($this, 'action_enqueue_block_editor_assets'));
-        add_action('init', array($this, 'action_init'));
+        add_action('init', array($this, 'action_init'), 20);
         add_action('personal_options_update', array($this, 'action_update_profile_fields'));
         add_action('show_user_profile', array($this, 'action_show_user_profile'));
         add_action('template_redirect', array($this, 'action_template_redirect'));
@@ -132,8 +132,7 @@
       }
       public function action_show_user_profile( $user ) {
         if ( is_admin() ) {
-          
-          $dl_team = get_the_author_meta('dl_team', $user->ID);
+          $timezones = wp_timezone_choice(get_the_author_meta('dl_timezone', $user->ID));
           
           printf('
               <table class="form-table">
@@ -151,10 +150,19 @@
                     </select>
                   </td>
                 </tr>
+                <tr>
+                  <th><label for="dl_team">Timezone</label></th>
+                  <td>
+                    <select id="dl_timezone" name="dl_timezone">
+                      %s
+                    </select>
+                  </td>
+                </tr>
               </table>
             ',
             esc_html(get_the_author_meta('discord', $user->ID)),
-            $this->dl_team_options($user)
+            $this->dl_team_options($user),
+            $timezones
           );
         }
       }
@@ -177,7 +185,7 @@
         
         if ( isset($_POST['dl_team']) ) update_user_meta($user_id, 'dl_team', sanitize_text_field($_POST['dl_team']));
         
-        if ( isset($_POST['hd_ids']) && !empty($_POST['hd_ids']) ) update_user_meta($user_id, 'hd_ids', sanitize_text_field($_POST['hd_ids']));
+        if ( isset($_POST['dl_timezone']) ) update_user_meta($user_id, 'dl_timezone', sanitize_text_field($_POST['dl_timezone']));
         
         if ( isset($_POST['nickname']) ) {
           $name = sanitize_text_field($_POST['nickname']);
@@ -473,17 +481,30 @@
             'order'          => 'ASC'
           )), 'post_title', 'ID');
           
+          $user        = wp_get_current_user();
+          $dl_timezone = $user ? get_the_author_meta('dl_timezone', $user->ID) : '';
+          $timezones   = wp_timezone_choice($dl_timezone);
+          
           $form_fields = array(
             'profile' => array(
-              'discord'  => array( 'priority' => 7, 'label' => 'Discord Name w/Number', 'description' => 'If you need this changed please contact a moderator.', 'attributes' => array('disabled' => true)),
-              'nickname' => array( 'priority' => 8, 'label' => 'Gamertag', 'description' => 'e.g. Handle, Nickname, etc.'),
-              'dl_team'  => array( 'priority' => 9, 'label' => 'Team', 'type' => 'dropdown', 'options' => $teams, 'description' => 'For you to show up on your team\'s page it must be set here and your captain must also have you selected.'),
-              // 'hd_ids'   => array( 'priority' => 10, 'label' => 'Hyper Dash Player ID(s)', 'type' => 'textarea', 'description' => 'Your Headset ID(s) are required in order to pull your game stats.'),
+              'hr1' => array( 'priority' => 5, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => 'Contact Info<hr class="hr hr--thin"/>')),
+                'discord'     => array( 'priority' => 7, 'label' => 'Discord Name w/Number', 'description' => 'If you need this changed please contact a moderator.', 'attributes' => array('disabled' => true)),
+              'hr2' => array( 'priority' => 8, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/>Player Info<hr class="hr hr--thin"/>')),
+                'nickname'    => array( 'priority' => 9, 'label' => 'Gamertag', 'description' => 'e.g. Handle, Nickname, etc.'),
+                'dl_team'     => array( 'priority' => 9, 'label' => 'Team', 'type' => 'dropdown', 'options' => $teams, 'description' => 'For you to show up on your team\'s page it must be set here and your captain must also have you selected.'),
+                'dl_timezone' => array( 'priority' => 9, 'label' => 'Timezone', 'type' => 'custom', 'content' => sprintf('<select name="dl_timezone" id="dl_timezone" class="tml-field">%s</select>', $timezones)),
+              'hr3' => array( 'priority' => 9, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/>Site Credentials<hr class="hr hr--thin"/>')),
             ),
             'register' => array(
-              'discord'  => array( 'priority' => 7, 'label' => 'Discord Name w/Number', 'description' => 'e.g. JamesBond#0007'),
-              'nickname' => array( 'priority' => 7, 'label' => 'Gamertag', 'description' => 'e.g. Handle, Nickname, etc.'),
-              'dl_team'  => array( 'priority' => 7, 'label' => 'Team', 'type' => 'dropdown', 'options' => $teams),
+              'hr1' => array( 'priority' => 5, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => 'Contact Info<hr class="hr hr--thin"/>')),
+                'discord'       => array( 'priority' => 7, 'label' => __('Discord Username'), 'description' => '', 'render_args' => array('control_before' => '<small>Must include number (e.g. JamesBond#0007)</small>')),
+                'discord_check' => array( 'priority' => 7, 'label' => __('My discord username or number has changed in the last six months.'), 'type' => 'checkbox'),
+                'user_email'    => array( 'priority' => 7, 'label' => __('Email'), 'type' => 'email', 'value' => '', 'id' => 'user_email', 'attributes' => array('maxlength' => 200)),
+              'hr2' => array( 'priority' => 8, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/>Player Info<hr class="hr hr--thin"/>')),
+                'nickname'    => array( 'priority' => 8, 'label' => __('Gamertag'), 'render_args' => array('control_before' => '<small>(i.e. handle, nickname, etc)</small>')),
+                'dl_team'     => array( 'priority' => 8, 'label' => __('Team'), 'type' => 'dropdown', 'options' => $teams),
+                'dl_timezone' => array( 'priority' => 8, 'label' => 'Timezone', 'type' => 'custom', 'content' => sprintf('<select name="dl_timezone" id="dl_timezone" class="tml-field">%s</select>', $timezones)),
+              'hr3' => array( 'priority' => 9, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/>Site Credentials<hr class="hr hr--thin"/>')),
             )
           );
           
@@ -499,8 +520,7 @@
               
               if ( $user ) $args['value'] = get_user_meta( $user->ID, $slug, true );
               
-              if ( $form === 'register' ) tml_add_form_field('register', $slug, $args);
-              else tml_add_form_field('profile', $slug, $args);
+              tml_add_form_field($form, $slug, $args);
             }
           }
         }
@@ -512,6 +532,8 @@
       }
       public function tml_remove_form_field() {
         if ( function_exists('tml_remove_form_field') ) {
+          // tml_remove_form_field('register', 'user_email');
+          
           tml_remove_form_field('profile', 'personal_options_section_header');
           tml_remove_form_field('profile', 'admin_bar_front');
           tml_remove_form_field('profile', 'name_section_header');
@@ -531,8 +553,6 @@
         }
       }
       public function tml_registration_save_form_fields( $user_id ) {
-        if ( isset($_POST['hd_ids']) ) update_user_meta($user_id, 'hd_ids', sanitize_text_field($_POST['hd_ids']));
-        
         if ( isset($_POST['discord']) ) {
           $name = $_POST['discord'];
           update_user_meta($user_id, 'discord', $name);
@@ -544,6 +564,8 @@
         }
         
         if ( isset($_POST['dl_team']) ) update_user_meta($user_id, 'dl_team', sanitize_text_field($_POST['dl_team']));
+        
+        if ( isset($_POST['dl_timezone']) ) update_user_meta($user_id, 'dl_timezone', sanitize_text_field($_POST['dl_timezone']));
       }
       public function tml_validate_form_fields( $errors ) {
         $this->tml_errors = $errors;
