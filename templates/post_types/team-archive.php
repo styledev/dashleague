@@ -26,7 +26,7 @@
             <span class="bar__icon"><i class="fas fa-users-class"></i></span>
             <?php echo $global['teams']; ?>
           </div>
-          <div class="bar__pill bar__pill--players" title="Number of Cmpetitors">
+          <div class="bar__pill bar__pill--players" title="Number of Competitors">
             <span class="bar__icon"><i class="fas fa-head-vr"></i></span>
             <?php echo $global['players']; ?>
           </div>

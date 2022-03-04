@@ -2,7 +2,7 @@
   global $wpdb;
   
   wp_enqueue_script('api');
-  wp_enqueue_script('api-account');
+  wp_enqueue_script('api-manage');
   
   $teams = array_column(get_posts(array(
     'post_type'      => 'team',

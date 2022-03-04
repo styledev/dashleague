@@ -70,10 +70,11 @@
           'datatables.min' => array('enqueue' => FALSE),
           'imask.min'      => array('enqueue' => FALSE, 'in_footer' => TRUE),
           'api'            => array('in_footer' => FALSE, 'localize' => array('nonce' => wp_create_nonce('wp_rest')), 'enqueue' => FALSE),
-          'api-account'    => array('in_footer' => FALSE, 'deps' => 'api', 'enqueue' => FALSE),
-          'api-form-stats' => array('in_footer' => FALSE, 'deps' => 'api', 'enqueue' => FALSE),
+          'api-account'    => array('in_footer' => FALSE, 'deps' => array('api'), 'enqueue' => FALSE),
+          'api-manage'     => array('in_footer' => FALSE, 'deps' => array('api'), 'enqueue' => FALSE),
+          'api-form-stats' => array('in_footer' => FALSE, 'deps' => array('api'), 'enqueue' => FALSE),
           'register'       => array('in_footer' => TRUE, 'localize' => array('nonce' => wp_create_nonce('wp_rest')), 'enqueue' => FALSE),
-          'icons'          => array('src' => 'https://kit.fontawesome.com/570420dfdf.js', 'crossorigin' => 'anonymous'),
+          'icons'          => array('src' => 'https://kit.fontawesome.com/570420dfdf.js', 'crossorigin' => 'anonymous', 'enqueue' => FALSE),
           'magnific-popup' => array('enqueue' => FALSE, 'in_footer' => TRUE),
           'modal.min'      => array('deps' => array('magnific-popup'), 'enqueue' => FALSE, 'in_footer' => TRUE),
           'swiper.min'     => array('enqueue' => FALSE),
@@ -109,12 +110,13 @@
       
     // Hooks : Actions
       public function actions() {
-        add_action('enqueue_block_editor_assets', array($this, 'action_enqueue_block_editor_assets'));
         add_action('edit_user_profile', array($this, 'action_user_profile'));
         add_action('edit_user_profile_update', array($this, 'action_update_profile_fields'));
+        add_action('enqueue_block_editor_assets', array($this, 'action_enqueue_block_editor_assets'));
         add_action('init', array($this, 'action_init'));
         add_action('personal_options_update', array($this, 'action_update_profile_fields'));
-        add_action('show_user_profile', array($this, 'action_user_profile'));
+        add_action('show_user_profile', array($this, 'action_show_user_profile'));
+        add_action('template_redirect', array($this, 'action_template_redirect'));
         add_action('user_register', array($this, 'tml_registration_save_form_fields'));
         add_action('wp', array($this, 'action_wp'), 5);
         add_action('wp_enqueue_scripts', array($this, 'action_wp_enqueue_scripts'), 90);
@@ -128,13 +130,7 @@
         
         add_rewrite_rule('^casting', 'index.php?page=&pagename=catch-all', 'top');
       }
-      public function action_update_profile_fields( $user_id ) {
-        if ( !current_user_can('edit_user', $user_id) ) return false;
-        
-        if ( !empty($_POST['discord']) ) update_user_meta($user_id, 'discord', $_POST['discord']);
-        if ( isset($_POST['dl_team']) ) update_user_meta($user_id, 'dl_team', sanitize_text_field($_POST['dl_team']));
-      }
-      public function action_user_profile( $user ) {
+      public function action_show_user_profile( $user ) {
         if ( is_admin() ) {
           
           $dl_team = get_the_author_meta('dl_team', $user->ID);
@@ -160,6 +156,32 @@
             esc_html(get_the_author_meta('discord', $user->ID)),
             $this->dl_team_options($user)
           );
+        }
+      }
+      public function action_template_redirect() {
+        global $wp_query;
+        
+        if ( is_author() ) {
+          $wp_query->set_404();
+          status_header(404);
+        }
+      }
+      public function action_update_profile_fields( $user_id ) {
+        if ( !current_user_can('edit_user', $user_id) ) return false;
+        
+        if ( isset($_POST['discord']) && !empty($_POST['discord']) ) {
+          $name = sanitize_text_field($_POST['discord']);
+          wp_update_user(array('ID' => $user_id, 'display_name' => $name));
+          update_user_meta($user_id, 'discord', sanitize_text_field($_POST['discord']));
+        }
+        
+        if ( isset($_POST['dl_team']) ) update_user_meta($user_id, 'dl_team', sanitize_text_field($_POST['dl_team']));
+        
+        if ( isset($_POST['hd_ids']) && !empty($_POST['hd_ids']) ) update_user_meta($user_id, 'hd_ids', sanitize_text_field($_POST['hd_ids']));
+        
+        if ( isset($_POST['nickname']) ) {
+          $name = sanitize_text_field($_POST['nickname']);
+          wp_update_user(array('ID' => $user_id, 'first_name' => $name, 'nickname' => $name));
         }
       }
       public function action_wp() {
@@ -225,14 +247,21 @@
         }
       }
       public function action_wp_enqueue_scripts() {
-        $template = get_page_template();
-        if ( strpos($template, 'page-account.php') > 0 || strpos($template, 'page-matches.php') > 0 || strpos($template, 'page-playoffs.php') > 0 || is_singular('team')  ) {
+        $template = get_page_template() ?: FALSE;
+        
+        if ( !$template || strpos($template, 'page-tool.php') < 0 ) {
+          wp_enqueue_script('icons');
+        }
+        
+        if ( strpos($template, 'page-manage.php') > 0 || strpos($template, 'page-matches.php') > 0 || strpos($template, 'page-playoffs.php') > 0 || is_singular('team')  ) {
           wp_enqueue_style('block-acf-dl-events');
         }
       }
       
     // Hooks : Filters
       public function filters() {
+        add_filter('acf/fields/relationship/query/key=field_5faebcd5757cf', array($this, 'filter_acf_fields_relationship_query'), 20, 3);
+        add_filter('acf/fields/relationship/query/key=field_5fb1e370c7545', array($this, 'filter_acf_fields_relationship_query'), 20, 3);
         add_filter('lostpassword_errors', array($this, 'tml_wp_login_errors'));
         add_filter('pxl_template', array($this, 'filter_pxl_template'), 20, 2);
         add_filter('pxl_wrap', array($this, 'filter_pxl_wrap'), 10, 4);
@@ -241,6 +270,29 @@
         add_filter('tml_ajax_error_data', array($this, 'tml_ajax_error_data'));
         add_filter('wp_login_errors', array($this, 'tml_wp_login_errors'));
       }
+      public function filter_acf_fields_relationship_query( $args, $field, $post_id ) {
+        if ( strpos($_SERVER['HTTP_REFERER'], 'wp-admin') ) return $args;
+        
+        $players = new WP_User_Query(array(
+          'fields'       => array('display_name'),
+          'meta_key'     => 'dl_team',
+          'meta_value'   => $post_id,
+          'meta_type'    => 'NUMERIC',
+          'meta_compare' => '=',
+        ));
+        
+        $players = array_column($players->results, 'display_name');
+        
+        $args['meta_query'] = array(
+          array(
+            'key'     => 'discord_username',
+            'value'   => $players,
+            'compare' => 'IN'
+          ),
+        );
+        
+        return $args;
+      }
       public function filter_pxl_template( $pxl_template, $template ) {
         if ( strpos($template, 'betterdocs') ) return false;
         
@@ -248,10 +300,6 @@
       }
       public function filter_pxl_wrap( $wrap, $area, $template, $post ) {
         if ( strpos($template, 'tml.php') > 0 ) return FALSE;
-        
-        if (
-          strpos($template, 'tml.php') > 0 
-        ) return FALSE;
         
         return $wrap;
       }
@@ -409,7 +457,7 @@
         
         $options = implode("\n", $options);
         
-        $options = sprintf('<option value="Free Agent"%s>Free Agent</option>', ($team == 'Free Agent' ? ' selected' : '')) . $options;
+        $options = sprintf('<option value="Free Agent"%s>Free Agent (no team)</option>', ($team == 'Free Agent' ? ' selected' : '')) . $options;
         $options = sprintf('<option value="Inactive"%s>Inactive</option>', ($team == 'Inactive' ? ' selected' : '')) . $options;
         
         return $options;
@@ -418,40 +466,42 @@
     // Functions : TML
       public function tml_add_form_field() {
         if ( function_exists('tml_add_form_field') ) {
-          $teams = array('Free Agent' => 'Free Agent', 'Inactive' => 'Inactive') + array_column(get_posts(array(
+          $teams = array('Free Agent' => 'Free Agent (no team)') + array_column(get_posts(array(
             'post_type'      => 'team',
             'posts_per_page' => -1,
             'orderby'        => 'title',
             'order'          => 'ASC'
           )), 'post_title', 'ID');
           
-          $fields = array(
-            'discord' => array( 'priority' => 7, 'label' => 'Discord Name w/Number'),
-            'dl_team' => array( 'priority' => 7, 'label' => 'Team', 'type' => 'dropdown', 'options' => $teams),
+          $form_fields = array(
+            'profile' => array(
+              'discord'  => array( 'priority' => 7, 'label' => 'Discord Name w/Number', 'description' => 'If you need this changed please contact a moderator.', 'attributes' => array('disabled' => true)),
+              'nickname' => array( 'priority' => 8, 'label' => 'Gamertag', 'description' => 'e.g. Handle, Nickname, etc.'),
+              'dl_team'  => array( 'priority' => 9, 'label' => 'Team', 'type' => 'dropdown', 'options' => $teams, 'description' => 'For you to show up on your team\'s page it must be set here and your captain must also have you selected.'),
+              // 'hd_ids'   => array( 'priority' => 10, 'label' => 'Hyper Dash Player ID(s)', 'type' => 'textarea', 'description' => 'Your Headset ID(s) are required in order to pull your game stats.'),
+            ),
+            'register' => array(
+              'discord'  => array( 'priority' => 7, 'label' => 'Discord Name w/Number', 'description' => 'e.g. JamesBond#0007'),
+              'nickname' => array( 'priority' => 7, 'label' => 'Gamertag', 'description' => 'e.g. Handle, Nickname, etc.'),
+              'dl_team'  => array( 'priority' => 7, 'label' => 'Team', 'type' => 'dropdown', 'options' => $teams),
+            )
           );
           
+          $user    = wp_get_current_user();
           $default = array('type' => 'text');
-          $user = wp_get_current_user();
           
-          foreach ($fields as $slug => $args) {
-            $args = array_merge($default, $args);
-            
-            $args['id']    = $slug;
-            $args['value'] = tml_get_request_value($slug, 'any');
-            
-            if ( $user ) $args['value'] = get_user_meta( $user->ID, $slug, true );
-            
-            tml_add_form_field('register', $slug, $args);
-            
-            if ( $slug === 'discord' ) {
-              $args['attributes'] = array('disabled' => true);
-              $args['description'] = 'If you need this changed please contact Styledev';
+          foreach ($form_fields as $form => $fields) {
+            foreach ($fields as $slug => $args) {
+              $args = array_merge($default, $args);
+              
+              $args['id']    = $slug;
+              $args['value'] = tml_get_request_value($slug, 'any');
+              
+              if ( $user ) $args['value'] = get_user_meta( $user->ID, $slug, true );
+              
+              if ( $form === 'register' ) tml_add_form_field('register', $slug, $args);
+              else tml_add_form_field('profile', $slug, $args);
             }
-            if ( $slug === 'dl_team' ) {
-              $args['description'] = 'For you to show up on your team\'s page it must be set here and your captain must also have you selected.';
-            }
-            
-            tml_add_form_field('profile', $slug, $args);
           }
         }
       }
@@ -481,11 +531,18 @@
         }
       }
       public function tml_registration_save_form_fields( $user_id ) {
+        if ( isset($_POST['hd_ids']) ) update_user_meta($user_id, 'hd_ids', sanitize_text_field($_POST['hd_ids']));
+        
         if ( isset($_POST['discord']) ) {
-          $name = sanitize_text_field($_POST['discord']);
+          $name = $_POST['discord'];
           update_user_meta($user_id, 'discord', $name);
-          wp_update_user(array('ID' => $user_id, 'display_name'=> $name, 'first_name' => $name));
+          wp_update_user(array('ID' => $user_id, 'display_name' => $name));
         }
+        
+        if ( isset($_POST['nickname']) ) {
+          wp_update_user(array('ID' => $user_id, 'first_name' => $_POST['nickname'], 'user_nicename' => $_POST['nickname']));
+        }
+        
         if ( isset($_POST['dl_team']) ) update_user_meta($user_id, 'dl_team', sanitize_text_field($_POST['dl_team']));
       }
       public function tml_validate_form_fields( $errors ) {

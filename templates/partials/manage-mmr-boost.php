@@ -2,7 +2,7 @@
   global $pxl, $wpdb;
   
   wp_enqueue_script('api');
-  wp_enqueue_script('api-account');
+  wp_enqueue_script('api-manage');
   
   $players = array();
   

@@ -31,7 +31,7 @@
             array(
               'methods'             => WP_REST_Server::CREATABLE,
               'callback'            => array($this, 'stats_game'),
-              'permission_callback' => array($this, 'api_authenticate')
+              // 'permission_callback' => array($this, 'api_authenticate')
             ),
           ),
         );
@@ -801,20 +801,23 @@
       public function games_stats( $options = array() ) {
         global $pxl, $wpdb;
         
-        $start = date('Ymd', strtotime($pxl->season['regular_start']));
-        $end   = date('Ymd', strtotime($pxl->season['playoffs_end']));
-        $where = $wpdb->prepare("gs.datetime >= '%s' AND gs.datetime <= '%s' AND gs.matchID is not NULL AND gs.matchID != ''", $start, $end);
+        // $start = date('Ymd', strtotime($pxl->season['regular_start']));
+        // $end   = date('Ymd', strtotime($pxl->season['playoffs_end']));
+        // $where = $wpdb->prepare("AND gs.datetime >= '%s' AND gs.datetime <= '%s'", $start, $end);
+        $where = '';
         $join  = isset($options['join']) ? $options['join'] : '';
         
         if ( isset($options['where']) ) $where .= sprintf(' AND %s', $options['where']);
         
-        $game_stats = $wpdb->get_results("
+        $sql = "
           SELECT *
           FROM dl_game_stats AS gs
           $join
-          WHERE $where
+          WHERE gs.matchID is not NULL AND gs.matchID != '' $where
           ORDER BY gs.datetime ASC, gs.matchID
-        ", ARRAY_A);
+        ";
+        
+        $game_stats = $wpdb->get_results($sql, ARRAY_A);
         
         return $game_stats;
       }
@@ -1020,8 +1023,6 @@
           $season,
           $where_string
         );
-        
-        fns::error($sql);
         
         return $wpdb->get_results($sql, ARRAY_A);
       }

@@ -39,13 +39,13 @@ class dlAPI {
     }
   }
   listen_ajax() {
-    jQuery('.ajax').on('click', (e) => {
+    jQuery('.ajax-link').on('click', (e) => {
       e.preventDefault();
       
       var message = e.target.dataset.confirm || 'Are you sure?';
       
       if ( confirm(message) ) {
-        var callback = e.target.callback || 'reload';
+        var callback = e.target.dataset.callback || 'reload';
         
         dl.query(e.target.dataset.endpoint, e.target.dataset.data, 'POST', callback);
       }
@@ -116,6 +116,7 @@ class dlAPI {
     
     xhr.open(method, url, true);
     xhr.setRequestHeader('X-WP-Nonce', vars_api.nonce);
+    xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
     xhr.addEventListener('readystatechange', () => {
       if (xhr.readyState == 4 && xhr.status == 200) {
         var results = JSON.parse(xhr.responseText);
@@ -130,6 +131,9 @@ class dlAPI {
       
       return false;
     });
+    
+    // data = JSON.parse(data);
+    console.log(data);
     
     xhr.send(data);
   }

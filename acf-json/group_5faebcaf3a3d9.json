@@ -49,8 +49,27 @@
             ],
             "elements": "",
             "min": "",
-            "max": "",
+            "max": 12,
             "return_format": "object"
+        },
+        {
+            "key": "field_61d1015c63267",
+            "label": "Looking for Players?",
+            "name": "looking_for_players",
+            "type": "true_false",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "default_value": 0,
+            "ui": 1,
+            "ui_on_text": "",
+            "ui_off_text": ""
         }
     ],
     "location": [
@@ -70,5 +89,6 @@
     "hide_on_screen": "",
     "active": true,
     "description": "",
-    "modified": 1625160936
+    "show_in_rest": 0,
+    "modified": 1646371655
 }

@@ -35,6 +35,8 @@
       }
       public function action_init() {
         if ( is_admin() ) $this->acf_options();
+        
+        // add_rewrite_rule('discord/?$', 'index.php?action=register_discord', 'top');
       }
       public function action_gform_enqueue_scripts() {
         wp_enqueue_style('gf');
@@ -59,6 +61,9 @@
           array('', '.css'),
           get_page_template_slug()
         ));
+        
+        $template = get_page_template();
+        if ( $template && strpos($template, 'page-account') > 0 ) acf_form_head();
         
         the_field('scripts_head', 'options');
       }

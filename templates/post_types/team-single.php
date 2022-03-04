@@ -21,6 +21,7 @@
     'Payload_Blue_Art'     => 'Canyon',
     'pay_launchpad'        => 'Launchpad',
     'Payload_Orange_Art'   => 'Launchpad',
+    'pay_abyss'            => 'Abyss',
     'dom_waterway'         => 'Waterway',
     'Domination_Yellow'    => 'Waterway',
     'cp_stadium'           => 'Stadium',

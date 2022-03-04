@@ -1,9 +1,5 @@
-<?php /* Template Name: Account */
-  if ( $pxl->access('administrator|captain|subscriber') ) :
-    
-    wp_enqueue_script('api-account');
-    
-    $player = new dlPlayer();
+<?php /* Template Name: Manage */
+  if ( $pxl->access('administrator') ) :
 ?>
 <style>
   .content{padding-bottom:2em;}
@@ -12,7 +8,7 @@
 <div class="content">
   <div class="">
     <div class="page-heading">
-      <h1 class="h2">Account</h1>
+      <h1 class="h2">Manage</h1>
     </div>
     <div class="subnav">
       <?php
@@ -45,8 +41,6 @@
           $class = $post->ID == $page->ID ? ' subnav__link--current' : '';
           printf('<a class="subnav__link%s" href="%s">%s</a>', $class, get_permalink($page->ID), $page->post_title);
         }
-        
-        if ( $player->profile ) printf('<a class="subnav__link" href="%s">%s</a>', get_permalink($player->profile['ID']), 'Profile');
       ?>
     </div>
   </div>
@@ -55,7 +49,7 @@
     
     the_content();
     
-    $file = PARTIAL . "account-{$post->post_name}.php";
+    $file = PARTIAL . "manage-{$post->post_name}.php";
     
     if ( file_exists($file) ) include($file);
     

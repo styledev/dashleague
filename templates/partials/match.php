@@ -2,6 +2,10 @@
   $team       = array_keys($match['teams']);
   $team_a     = $match['teams'][$team[0]];
   $team_b     = $match['teams'][$team[1]];
+  
+  $logo_a = $team_a['logo'] ? sprintf('<a href="%s" target="_blank">%s</a><span>VS</span>', $team_a['link'], $team_a['logo']) : '';
+  $logo_b = $team_b['logo'] ? sprintf('<a href="%s" target="_blank">%s</a>', $team_b['link'], $team_b['logo']) : '';
+  
   $scores     = array_column($match['teams'], 'score', 'name'); arsort($scores);
   $winner     = array_search(max($scores), $scores);
   $recorded   = empty($match['recorded']) ? '' : '<span class="event__recorded" title="MMR Approved"><i class="fas fa-check-circle"></i></span>';
@@ -13,33 +17,32 @@
 <div class="event">
   <?php
     printf('
-      <div class="event__vs">
-        <a href="%s" target="_blank">%s</a>
-        <span>VS</span>
-        <a href="%s" target="_blank">%s</a>
-      </div>
       <div class="event__details">
         <div class="event__title">
-          <span class="event__team event__team--%6$s">%s</span>
+          <span class="event__team event__team--%2$s">%s</span>
           <span class="event__score event__score--%s">[%s]</span>
           <span>vs</span>
-          <span class="event__team event__team--%9$s">%s</span>
+          <span class="event__team event__team--%5$s">%s</span>
           <span class="event__score event__score--%s">[%s]</span>
         </div>
         <div class="event__date" data-date="%s">
           %s%s
         </div>
       </div>
+      <div class="event__vs">
+        %s
+        %s
+      </div>
       <div class="event__actions">
         %s
       </div>',
-      $team_a['link'], $team_a['logo'],
-      $team_b['link'], $team_b['logo'],
       $team_a['name'], ($team_a['name'] == $winner ? 'winner' : 'loser'), $team_a['score'],
       $team_b['name'], ($team_b['name'] == $winner ? 'winner' : 'loser'), $team_b['score'],
       $match['datetime']->format('Y-m-d H:i:s'),
       $match['datetime']->format('F jS, Y'),
       $recorded,
+      $logo_a,
+      $logo_b,
       $action
     );
   ?>

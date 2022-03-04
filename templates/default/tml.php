@@ -8,9 +8,10 @@
       form[name="register"]{margin-bottom:1em;}
       .tml-register .tml-alerts .tml-error{margin-top:1em;}
       .tml .tml-field-wrap{margin:0;}
+      .tml * + .tml-field-wrap{margin-top:1em;}
       .tml-indicator-wrap{position:relative;}
       .tml-indicator_hint-wrap{font-size:smaller;}
-      #pass-strength-result{border-bottom-right-radius:4px;border-top-right-radius:4px;margin:0;padding:0 .25em;padding:5px 12px;position:absolute;right:0;top:-107px;}
+      #pass-strength-result{border-bottom-right-radius:4px;border-top-right-radius:4px;margin:0;padding:0 .25em;padding:5px 12px;position:absolute;right:0;top:-137px;}
       #pass-strength-result:not(.bad):not(.short):not(.good):not(.strong){border:0;height:0;margin:0;padding:0;}
       @media( max-width:780px ){#pass-strength-result{top:-101px;}}
       @media( max-width:480px ){#pass-strength-result{top:-97px;}}

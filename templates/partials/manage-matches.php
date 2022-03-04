@@ -1,6 +1,6 @@
 <?php
   wp_enqueue_script('api');
-  wp_enqueue_script('api-account');
+  wp_enqueue_script('api-manage');
   
   $matches = array(
     'process'  => array(
@@ -20,6 +20,7 @@
     'Payload_Blue_Art'     => 'Canyon',
     'pay_launchpad'        => 'Launchpad',
     'Payload_Orange_Art'   => 'Launchpad',
+    'pay_abyss'            => 'Abyss',
     'dom_waterway'         => 'Waterway',
     'Domination_Yellow'    => 'Waterway',
     'cp_stadium'           => 'Stadium',
