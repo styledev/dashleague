@@ -110,7 +110,7 @@
       
     // Hooks : Actions
       public function actions() {
-        add_action('edit_user_profile', array($this, 'action_user_profile'));
+        add_action('edit_user_profile', array($this, 'action_show_user_profile'));
         add_action('edit_user_profile_update', array($this, 'action_update_profile_fields'));
         add_action('enqueue_block_editor_assets', array($this, 'action_enqueue_block_editor_assets'));
         add_action('init', array($this, 'action_init'));
