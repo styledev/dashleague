@@ -1,0 +1,112 @@
+https://topscorer.qodeinteractive.com/landing/
+
+UPDATE dl_teams as t1
+JOIN dl_teams AS t2 ON t2.matchID = t1.matchID AND t2.team_id != t1.team_id
+SET t1.opponent_id = t2.team_id
+
+UPDATE dl_players as t1
+JOIN dl_players AS t2 ON t2.matchID = t1.matchID AND t2.team_id != t1.team_id
+SET t1.opponent_id = t2.team_id
+
+https://aco-viewer.appspot.com/827a4f12793bc9a9aef604a47977b091
+
+/* CSS */
+.swatch_1{
+    background: #b6bac2;
+}
+.swatch_2{
+    background: #7d8493;
+}
+.swatch_3{
+    background: #dbdde0;
+}
+.swatch_4{
+    background: #0c0b17;
+}
+.swatch_5{
+    background: #34314a;
+}
+.swatch_6{
+    background: #845960;
+}
+
+/* SASS */
+$swatch_1: #b6bac2;
+$swatch_2: #7d8493;
+$swatch_3: #dbdde0;
+$swatch_4: #0c0b17;
+$swatch_5: #34314a;
+$swatch_6: #845960;
+
+/* LESS */
+@swatch_1: #b6bac2;
+@swatch_2: #7d8493;
+@swatch_3: #dbdde0;
+@swatch_4: #0c0b17;
+@swatch_5: #34314a;
+@swatch_6: #845960;
+
+
+Delete the following from site scripts, I think this was left over from prime site.
+
+
+CREATE TABLE `dl_game_stats` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `game_id` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  `datetime` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `type` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  `map` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  `time` time NOT NULL DEFAULT '00:00:00',
+  `winner` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  `red_score` mediumint unsigned DEFAULT NULL,
+  `red_players` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci,
+  `blue_score` mediumint unsigned DEFAULT NULL,
+  `blue_players` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci,
+  `dropped_players` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+
+
+CREATE TABLE `dl_players` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `matchID` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
+  `season` tinyint NOT NULL DEFAULT '2',
+  `player_id` bigint unsigned DEFAULT NULL,
+  `team_id` bigint unsigned DEFAULT NULL,
+  `opponent_id` bigint unsigned DEFAULT NULL,
+  `map_id` bigint unsigned DEFAULT NULL,
+  `datetime` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `kills` smallint DEFAULT NULL,
+  `deaths` smallint DEFAULT NULL,
+  `score` smallint DEFAULT NULL,
+  `time` time DEFAULT NULL,
+  `score_points` mediumint DEFAULT NULL,
+  `score_time` time DEFAULT NULL,
+  `score_percentage` int DEFAULT NULL,
+  `outcome` tinyint NOT NULL,
+  `rank_gain` smallint NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2041 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci
+
+
+CREATE TABLE `dl_teams` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `matchID` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
+  `season` tinyint NOT NULL DEFAULT '2',
+  `team_id` bigint unsigned DEFAULT NULL,
+  `opponent_id` bigint unsigned DEFAULT NULL,
+  `map_id` bigint unsigned DEFAULT NULL,
+  `datetime` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `kills` smallint unsigned DEFAULT NULL,
+  `deaths` smallint unsigned DEFAULT NULL,
+  `score` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
+  `time` time DEFAULT NULL,
+  `score_points` mediumint DEFAULT NULL,
+  `score_time` time DEFAULT NULL,
+  `score_percentage` int DEFAULT NULL,
+  `outcome` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
+  `rank_gain` int NOT NULL,
+  `rp_adjust` int DEFAULT NULL,
+  `rp_reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=424 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci

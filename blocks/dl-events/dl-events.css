@@ -1,0 +1,44 @@
+.events{padding:2em 0;}
+.events__container{display:flex;flex-wrap:wrap;flex-direction:column;}
+.events__container + .events__container{margin-top:3em;}
+.events__container:before{background-color:#000000;border-radius:3px 3px 0 0;color:#fff;content:attr(data-title);display:inline-block;font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;height:30px;line-height:30px;padding:0 1em;position:relative;text-transform:uppercase;width:auto;}
+.events__container:empty:before{border-radius:3px;}
+.event__container--review:before,
+.event__container--matches-today:before,
+.event__container--matches-tomorrow:before{background-color: #0993e3;}
+.event__container--recorded:before,
+.event__container--past-matches:before{background-color: var(--grey-dark);}
+
+.event{align-items:center;background-color:#fff;border:1px solid var(--grey);display:flex;flex-wrap:wrap;justify-content:space-between;padding:1em 2em;}
+.event:nth-child(odd){border-top:none;background-color:var(--grey-light);}
+.event:last-child{border-radius:0 0 3px 3px;}
+.event__vs{align-items:center;display:flex;}
+.event__vs span{color:#000;display:inline-block;font-family:'Oswald',sans-serif;font-size:36px;font-weight:600;padding:0 1em;}
+.event__vs a img{display:block;}
+.event__details{text-align:center;}
+
+.event__details{flex:1 0 auto;}
+.event__vs, .event__actions{flex:0 0 20%;}
+
+.event__vs a{min-width:75px;}
+
+.event__title{color:initial;font-family:'Oswald',sans-serif;font-size:24px;font-weight:600;}
+.event__team--winner, .event__score--winner{color:var(--green);}
+.event__date{color:var(--orange);}
+.event__recorded{border-radius:100%;color:var(--grey-dark);display:inline-block;text-align:center;}
+.event__actions{text-align:right;}
+.event__actions a, .event__actions button{text-align:center;width:100%;}
+
+@media( max-width:780px ) {
+  .event{padding:10px;}
+  .event__vs span{padding:0 .5em;}
+  .event__actions{min-width:175px;}
+  .event__actions a, .event__actions button{padding:0.5em 1em;}
+}
+@media( max-width:480px ) {
+  .event{flex-wrap:wrap;justify-content:center;padding:30px;}
+  .event__details{margin:1em 0;text-align:center}
+  .game{margin-top:1em;}
+  .game .team{flex:1;}
+  .game__details{text-align:center;}
+}

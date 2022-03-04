@@ -1,0 +1,12 @@
+.onFinish{display:none!important;} #editor .onFinish{display:initial!important;}
+
+.block-pxl-countdown{text-align:center;}
+.block-pxl-countdown .countdown{display:flex;}
+.block-pxl-countdown .countdown > div{flex:1;padding:0 10px;}
+.block-pxl-countdown .countdown > div .number{font-size:400%;padding-bottom:10px;}
+.block-pxl-countdown .countdown > div h6,
+.block-pxl-countdown .countdown > div p{margin:0;line-height:100%;}
+
+@media (max-width:480px){
+  .block-pxl-countdown .countdown > div h6{font-size:250%;}
+}

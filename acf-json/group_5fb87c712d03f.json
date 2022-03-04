@@ -1,0 +1,86 @@
+{
+    "key": "group_5fb87c712d03f",
+    "title": "Map Info",
+    "fields": [
+        {
+            "key": "field_5fb87c74733c2",
+            "label": "Mode",
+            "name": "mode",
+            "type": "select",
+            "instructions": "",
+            "required": 1,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "control-point": "Control Point",
+                "deathmatch": "Deathmatch",
+                "domination": "Domination",
+                "payload": "Payload"
+            },
+            "default_value": false,
+            "allow_null": 0,
+            "multiple": 0,
+            "ui": 0,
+            "return_format": "value",
+            "ajax": 0,
+            "placeholder": ""
+        },
+        {
+            "key": "field_60f933c282b20",
+            "label": "Map HD",
+            "name": "map_hd",
+            "type": "select",
+            "instructions": "",
+            "required": 1,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "cp_stadium": "cp_stadium",
+                "ControlPoint_Stadium": "ControlPoint_Stadium",
+                "dom_waterway": "dom_waterway",
+                "Domination_Yellow": "Domination_Yellow",
+                "dom_quarry": "dom_quarry",
+                "Domination_Grey": "Domination_Grey",
+                "pay_canyon": "pay_canyon",
+                "Payload_Blue_Art": "Payload_Blue_Art",
+                "pay_launchpad": "pay_launchpad",
+                "Payload_Orange_Art": "Payload_Orange_Art"
+            },
+            "default_value": [
+                "choose"
+            ],
+            "allow_null": 0,
+            "multiple": 1,
+            "ui": 0,
+            "return_format": "value",
+            "ajax": 0,
+            "placeholder": ""
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "post_type",
+                "operator": "==",
+                "value": "map"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "side",
+    "style": "seamless",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "modified": 1629178301
+}

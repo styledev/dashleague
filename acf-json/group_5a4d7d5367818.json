@@ -1,0 +1,132 @@
+{
+    "key": "group_5a4d7d5367818",
+    "title": "Scripts & Styles",
+    "fields": [
+        {
+            "key": "field_5c7f0bcb9ac92",
+            "label": "Google API Key",
+            "name": "google_api_key",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": "",
+            "maxlength": ""
+        },
+        {
+            "key": "field_5a4d7d53697e5",
+            "label": "&lt;head&gt;&lt;\/head&gt;",
+            "name": "",
+            "type": "tab",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "top",
+            "endpoint": 1
+        },
+        {
+            "key": "field_5a4d7d53697ef",
+            "label": "Scripts & Styles",
+            "name": "scripts_head",
+            "type": "textarea",
+            "instructions": "Add your scripts and styles here to have them appended to the &lt;head&gt; tag.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "",
+            "maxlength": "",
+            "rows": 10,
+            "new_lines": ""
+        },
+        {
+            "key": "field_5a4d7d53697f9",
+            "label": "&lt;body&gt;&lt;\/body&gt;",
+            "name": "",
+            "type": "tab",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "top",
+            "endpoint": 0
+        },
+        {
+            "key": "field_5a4d7d5369803",
+            "label": "&lt;body&gt;",
+            "name": "scripts_body_start",
+            "type": "textarea",
+            "instructions": "For scripts that should be included right after the opening &lt;body&gt; tag.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "",
+            "maxlength": "",
+            "rows": 4,
+            "new_lines": ""
+        },
+        {
+            "key": "field_5a4d7d536980d",
+            "label": "&lt;\/body&gt;",
+            "name": "scripts_body_end",
+            "type": "textarea",
+            "instructions": "For scripts that should be included right before the closing &lt;body&gt; tag.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "",
+            "maxlength": "",
+            "rows": 4,
+            "new_lines": ""
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "options_page",
+                "operator": "==",
+                "value": "acf-options-scripts"
+            }
+        ]
+    ],
+    "menu_order": 10,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "left",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": 1,
+    "description": "",
+    "modified": 1551830002
+}

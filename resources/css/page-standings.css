@@ -1,0 +1,38 @@
+.content{background-color:#fff;}
+.stats{align-content:flex-start;display:flex;flex-wrap:wrap;justify-content:space-between;}
+.stat{flex:0 0 31%;font-size:15px;margin-top:.5em;}
+.stat__heading{color:var(--blue);border-bottom:1px solid var(--grey);display:flex;justify-content:space-between;padding-bottom:.25em;text-transform:uppercase;}
+a.stat__heading:hover{color:var(--red);}
+.stat_player{font-family: sans-serif;margin-top:.25em;}
+.stat_player,.stat_player a{align-items:baseline;display:flex;justify-content:space-between;transition:none;}
+.stat_player a{color:var(--dark);flex:1 0 auto;padding:0 .25em;}
+.stat_player a > *{transition:none;}
+.stat_player__pos{color: var(--grey-dark);margin-right:0.25em;text-align:right;width:21px;}
+.stat_player[data-key="1"]{font-weight:800;}
+.stat_player[data-key="1"] .stat_player__pos{color:initial;}
+.stat_player__team{color:var(--grey-dark);font-size:smaller;margin-left:.25em;padding:0 .25em;}
+.stat_player__team--highlight{background-color:var(--red);color:#fff!important;font-weight:600;}
+.stat_player__stat{flex: 1 0 auto;text-align:right;}
+.stat_player a:hover{background-color:var(--green-dark);color:#fff;}
+.stat_player a:hover .stat_player__team{color:var(--dark);}
+
+.standings .stat{flex:1 0 auto;}
+.standings .stat .stat_player__name{pointer-events:all;}
+
+.links{display:flex;justify-content:center;margin:1em 0 ;}
+
+@media( max-width:780px ) {
+  .stat{flex: 0 0 30%;}
+}
+
+@media( max-width:480px ) {
+  #betterdocs-ia{display:none;}
+  .content > .alignwide{padding:0;}
+  .grid{margin:0;}
+  .grid__item{padding:0;}
+  .standings{padding-top:0;}
+  .stat{flex: 1 0 100%;margin-top:0;margin-bottom:1em;}
+  .stat+.stat{margin-top:1em;}
+  .stat__heading{background-color:var(--blue);color:#fff;margin-top:0;padding:1em;position:sticky;top:60px;}
+  .stat__list{padding:0 1em;}
+}
