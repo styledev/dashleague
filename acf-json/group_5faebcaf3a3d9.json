@@ -28,6 +28,23 @@
             "return_format": "object"
         },
         {
+            "key": "field_6223b3298fdb7",
+            "label": "Manage Players",
+            "name": "",
+            "type": "message",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "message": "<button class=\"btn btn--ghost btn--none btn--small\" data-action=\"fn\" data-fn=\"playersEdit\" type=\"button\">Toggle Remove<\/button>",
+            "new_lines": "",
+            "esc_html": 0
+        },
+        {
             "key": "field_5fb1e370c7545",
             "label": "Players",
             "name": "players",
@@ -90,5 +107,5 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
-    "modified": 1646371655
+    "modified": 1646508461
 }

@@ -59,7 +59,14 @@ class dlAPI {
     if ( this.el.$content ) {
       this.el.$content.addEventListener('click', function(e) {
         if ( e.target.tagName === 'BUTTON' && e.target.dataset.action ) {
+          var action = e.target.dataset.action;
+          
           _this.el.$buttonSubmit = e.target;
+          
+          if ( action === 'fn' ) {
+            window[e.target.dataset.fn]();
+          }
+          
           _this[e.target.dataset.action](e.target);
         }
       });

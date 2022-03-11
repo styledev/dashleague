@@ -1,24 +1,41 @@
 <?php if ( !class_exists('dlPlayer') ) {
   class dlPlayer {
-    private $user;
-    function __construct( $user = FALSE ) {
+    function __construct( $player = FALSE ) {
+      
+      $this->id = $player ? $player->ID : get_the_ID();
+      
+      $teams = get_posts(array(
+        'post_type' => 'team',
+        'meta_query' => array(
+          array(
+            'key'     => 'players',
+            'value'   => '"' . $this->id . '"',
+            'compare' => 'LIKE'
+          )
+        )
+      ));
+      
+      // fns::put($teams);die;
+      
       $this->active  = FALSE;
       $this->captain = FALSE;
-      $this->user    = $user ? $user : wp_get_current_user();
       $this->team    = FALSE;
       
-      if ( $this->user ) $this->init();
       
-      // fns::put($this);
+      
+      $this->init();
+      
+      fns::put($this);
+      die;
     }
       
     // Player Details
       public function init() {
-        $this->get_profile();
-        $this->get_team();
+        // $this->get_profile();
+        // $this->get_team();
         
-        $this->active  = is_object($this->team) && isset($this->team->roster['players'][$this->discord]);
-        $this->captain = is_object($this->team) && isset($this->team->roster['captains'][$this->discord]);
+        // $this->active  = is_object($this->team) && isset($this->team->roster['players'][$this->discord]);
+        // $this->captain = is_object($this->team) && isset($this->team->roster['captains'][$this->discord]);
       }
       private function get_profile() {
         $this->profile = FALSE;

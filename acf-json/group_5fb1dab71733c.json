@@ -3,28 +3,6 @@
     "title": "Player Information",
     "fields": [
         {
-            "key": "field_5fb1daef2285c",
-            "label": "Team",
-            "name": "team",
-            "type": "post_object",
-            "instructions": "",
-            "required": 0,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "post_type": [
-                "team"
-            ],
-            "taxonomy": "",
-            "allow_null": 1,
-            "multiple": 0,
-            "return_format": "object",
-            "ui": 1
-        },
-        {
             "key": "field_60c6b9c8f832d",
             "label": "Discord Username",
             "name": "discord_username",
@@ -101,5 +79,6 @@
     "hide_on_screen": "",
     "active": true,
     "description": "",
-    "modified": 1626910299
+    "show_in_rest": 0,
+    "modified": 1646710273
 }

@@ -1,20 +1,25 @@
 <?php
   global $wpdb;
   
-  $id   = get_the_ID();
-  $team = get_field('team');
-  $maps = array_column($wpdb->get_results("SELECT id, post_title FROM {$wpdb->prefix}posts WHERE post_type = 'map'"), 'post_title', 'id');
+  // $player = new dlPlayer();
+  $id = get_the_ID();
   
-  $players = array(
-    'captains' => array_column(get_field('captains', $team->ID), 'ID'),
-    'players'  => array_column(get_field('players', $team->ID), 'ID'),
-  );
+  // $team = get_field('team');
+  // $maps = array_column($wpdb->get_results("SELECT id, post_title FROM {$wpdb->prefix}posts WHERE post_type = 'map'"), 'post_title', 'id');
+  //
+  // $players = array(
+  //   'captains' => array_column(get_field('captains', $team->ID), 'ID'),
+  //   'players'  => array_column(get_field('players', $team->ID), 'ID'),
+  // );
+  //
+  // $captain  = in_array(get_the_id(), $players['captains']);
+  // $rostered = in_array(get_the_id(),  $players['players']);
+  //
+  // if ( $rostered ) $role = $captain ? 'captain' : 'player';
+  // else $role = 'player';
   
-  $captain  = in_array(get_the_id(), $players['captains']);
-  $rostered = in_array(get_the_id(),  $players['players']);
-  
-  if ( $rostered ) $role = $captain ? 'captain' : 'player';
-  else $role = 'player';
+  $role = 'player';
+  $rostered = FALSE;
   
   $matches = $wpdb->get_results("SELECT * FROM dl_players WHERE player_id = $id ");
   

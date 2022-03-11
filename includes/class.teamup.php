@@ -98,7 +98,11 @@
           $team_b = get_page_by_title($teams[2], OBJECT, 'team');
           $team_b_logo = pxl::image($team_b, array( 'w' => 75, 'h' => 75, 'return' => 'tag' ));
           
-          if ( isset($teams[3]) && $teams[3] == '(cancelled)' ) $link = sprintf('<button class="btn btn--ghost btn--none">%s</button>', 'Cancelled');
+          if ( isset($teams[3]) && $teams[3] == '(cancelled)' || ( isset($event->custom->status) && $event->custom->status[0] = 'cancelled' ) ) $link = sprintf('<button class="btn btn--ghost btn--none">%s</button>', 'Cancelled');
+          
+          if ( isset($event->custom->status) ) {
+            $link = sprintf('<button class="btn btn--ghost btn--none">%s</button>', $event->custom->status[0]);
+          }
           
           $match = sprintf('
             <div class="event">

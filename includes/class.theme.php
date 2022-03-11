@@ -2,6 +2,7 @@
   include 'class.config.php';
   include 'class.api.php';
   include 'class.stats.php';
+  include 'class.user.php';
   include 'class.player.php';
   include 'class.team.php';
   include 'class.teamup.php';
@@ -31,7 +32,7 @@
         ),
         'player'   => array(
           'menu_icon'   => 'dashicons-universal-access-alt',
-          'query'       => array('order' => 'ASC', 'orderby' => 'title', 'season' => 'current'),
+          'query'       => array('order' => 'ASC', 'orderby' => 'title', 'posts_per_page' => -1, 'season' => 'current'),
           'query_admin' => array('order' => 'ASC', 'orderby' => 'title'),
           'supports'    => array('title', 'editor'),
         ),
@@ -79,6 +80,7 @@
           'modal.min'      => array('deps' => array('magnific-popup'), 'enqueue' => FALSE, 'in_footer' => TRUE),
           'swiper.min'     => array('enqueue' => FALSE),
           'site'           => array('deps' => array('jquery')),
+          'touch-punch.min' => array('enqueue' => TRUE),
         ),
       );
       
@@ -115,6 +117,7 @@
         add_action('enqueue_block_editor_assets', array($this, 'action_enqueue_block_editor_assets'));
         add_action('init', array($this, 'action_init'), 20);
         add_action('personal_options_update', array($this, 'action_update_profile_fields'));
+        add_action('profile_update', array($this, 'action_profile_update'), 10);
         add_action('show_user_profile', array($this, 'action_show_user_profile'));
         add_action('template_redirect', array($this, 'action_template_redirect'));
         add_action('user_register', array($this, 'tml_registration_save_form_fields'));
@@ -129,6 +132,15 @@
         $this->tml_remove_form_field();
         
         add_rewrite_rule('^casting', 'index.php?page=&pagename=catch-all', 'top');
+      }
+      public function action_profile_update( $user_id ) {
+        if ( isset($_POST['discord']) && !empty($_POST['discord']) && is_admin() ) {
+          remove_action('profile_update', array($this, 'action_profile_update'), 10 );
+          
+          wp_update_user(array('ID' => $user_id, 'display_name' => $_POST['discord']));
+          
+          add_action( 'profile_update', array($this, 'action_profile_update'), 10 );
+        }
       }
       public function action_show_user_profile( $user ) {
         if ( is_admin() ) {
@@ -177,9 +189,13 @@
       public function action_update_profile_fields( $user_id ) {
         if ( !current_user_can('edit_user', $user_id) ) return false;
         
-        if ( isset($_POST['discord']) && !empty($_POST['discord']) ) {
+        if ( isset($_POST['discord']) && !empty($_POST['discord']) && is_admin() ) {
           $name = sanitize_text_field($_POST['discord']);
-          wp_update_user(array('ID' => $user_id, 'display_name' => $name));
+          
+          $user = get_user_by('ID', $user_id);
+          $user->data->display_name = $name;
+          wp_update_user($user);
+          
           update_user_meta($user_id, 'discord', sanitize_text_field($_POST['discord']));
         }
         
@@ -270,6 +286,7 @@
       public function filters() {
         add_filter('acf/fields/relationship/query/key=field_5faebcd5757cf', array($this, 'filter_acf_fields_relationship_query'), 20, 3);
         add_filter('acf/fields/relationship/query/key=field_5fb1e370c7545', array($this, 'filter_acf_fields_relationship_query'), 20, 3);
+        add_filter('acf/load_value/key=field_60c6b9c8f832d', array($this, 'filter_acf_load_value_discord_username'), 20, 3);
         add_filter('lostpassword_errors', array($this, 'tml_wp_login_errors'));
         add_filter('pxl_template', array($this, 'filter_pxl_template'), 20, 2);
         add_filter('pxl_wrap', array($this, 'filter_pxl_wrap'), 10, 4);
@@ -300,6 +317,13 @@
         );
         
         return $args;
+      }
+      public function filter_acf_load_value_discord_username( $value, $post_id, $field ) {
+        if ( isset($_REQUEST['discord_username']) ) {
+          $value = $_REQUEST['discord_username'];
+        }
+        
+        return $value;
       }
       public function filter_pxl_template( $pxl_template, $template ) {
         if ( strpos($template, 'betterdocs') ) return false;
@@ -394,7 +418,10 @@
         );
         
         if ( $dates = get_field('season_dates', 'options') ) {
-          if ( $date <= $dates['regular_start'] ) $season['value'] = $dates['regular_start'];
+          if ( $date <= $dates['regular_start'] ) {
+            $cycle = 1;
+            $season['value'] = $dates['regular_start'];
+          }
           else if ( $date >= $dates['regular_start'] && $date <= $dates['regular_end'] ) {
             $diff    = date_diff(date_create($date), date_create($dates['regular_start']));
             $week    = floor($diff->days / 7);
@@ -491,15 +518,14 @@
                 'discord'     => array( 'priority' => 7, 'label' => 'Discord Name w/Number', 'description' => 'If you need this changed please contact a moderator.', 'attributes' => array('disabled' => true)),
               'hr2' => array( 'priority' => 8, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/>Player Info<hr class="hr hr--thin"/>')),
                 'nickname'    => array( 'priority' => 9, 'label' => 'Gamertag', 'render_args' => array('control_before' => '<small>(i.e. handle, nickname, etc)</small>')),
-                'dl_team'     => array( 'priority' => 9, 'label' => 'Team', 'type' => 'dropdown', 'options' => $teams, 'description' => 'Changing this will de-roster your from your current team.'),
+                'dl_team'     => array( 'priority' => 9, 'label' => 'Team', 'type' => 'dropdown', 'options' => $teams, 'description' => 'Changing this will de-roster you from your current team.'),
                 'dl_timezone' => array( 'priority' => 9, 'label' => 'Timezone', 'type' => 'custom', 'content' => sprintf('<select name="dl_timezone" id="dl_timezone" class="tml-field">%s</select>', $timezones)),
               'hr3' => array( 'priority' => 9, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/>Site Credentials<hr class="hr hr--thin"/>')),
             ),
             'register' => array(
               'hr1' => array( 'priority' => 5, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => 'Contact Info<hr class="hr hr--thin"/>')),
-                'discord'       => array( 'priority' => 7, 'label' => __('Discord Username'), 'description' => '', 'render_args' => array('control_before' => '<small>Must include number (e.g. JamesBond#0007)</small>')),
-                'discord_check' => array( 'priority' => 7, 'label' => __('My discord username or number has changed in the last six months.'), 'type' => 'checkbox'),
-                'user_email'    => array( 'priority' => 7, 'label' => __('Email'), 'type' => 'email', 'value' => '', 'id' => 'user_email', 'attributes' => array('maxlength' => 200)),
+                'discord'    => array( 'priority' => 7, 'label' => __('Discord Username'), 'description' => '', 'render_args' => array('control_before' => '<small>Must include number (e.g. JamesBond#0007)</small>')),
+                'user_email' => array( 'priority' => 7, 'label' => __('Email'), 'type' => 'email', 'id' => 'user_email', 'attributes' => array('maxlength' => 200)),
               'hr2' => array( 'priority' => 8, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/>Player Info<hr class="hr hr--thin"/>')),
                 'nickname'    => array( 'priority' => 8, 'label' => __('Gamertag'), 'render_args' => array('control_before' => '<small>(i.e. handle, nickname, etc)</small>')),
                 'dl_team'     => array( 'priority' => 8, 'label' => __('Team'), 'type' => 'dropdown', 'options' => $teams),
@@ -573,6 +599,11 @@
         if ( empty($_POST['discord']) || !strpos($_POST['discord'], '#') ) $errors->add('discord', '<strong>Error</strong>: Please enter your discord name with number.');
         if ( empty($_POST['user_email']) ) $errors->add('user_email', '<strong>Error</strong>: Please enter your email.');
         if ( empty($_POST['user_login']) ) $errors->add('user_login', '<strong>Error</strong>: Please enter a username.');
+        
+        $timezone = tml_get_request_value('dl_timezone', 'post');
+        if ( ! $timezone || $timezone == '' ) {
+          $errors->add('dl_timezone', '<strong>ERROR</strong>: You must pick a timezone.');
+        }
         
         return $errors;
       }

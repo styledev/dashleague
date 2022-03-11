@@ -1,9 +1,9 @@
 <?php /* Template Name: Account */
-  if ( $pxl->access('administrator|captain|subscriber') ) :
+  if ( $pxl->access('administrator|captain|player|subscriber') ) :
     
     wp_enqueue_script('api-account');
     
-    $player = new dlPlayer();
+    $user = new dlUser();
 ?>
 <style>
   .content{padding-bottom:2em;}
@@ -46,7 +46,7 @@
           printf('<a class="subnav__link%s" href="%s">%s</a>', $class, get_permalink($page->ID), $page->post_title);
         }
         
-        if ( $player->profile ) printf('<a class="subnav__link" href="%s">%s</a>', get_permalink($player->profile['ID']), 'Profile');
+        if ( $user->profile ) printf('<a class="subnav__link" href="%s">%s</a>', get_permalink($user->profile['ID']), 'Profile');
       ?>
     </div>
   </div>

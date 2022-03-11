@@ -3,8 +3,9 @@
   
   if ( !isset($pxl->cycle) ) $pxl->season_dates();
   
-  $tiers = $pxl->stats->data_tiers(array('cycle' => $pxl->cycle + 1, 'mmr' => TRUE));
-  if ( empty($tiers) ) $tiers = $pxl->stats->data_tiers(array('cycle' => $pxl->cycle, 'mmr' => TRUE));
+  $tiers = $pxl->api->data_tiers(array('cycle' => $pxl->cycle + 1, 'mmr' => TRUE));
+  
+  if ( empty($tiers) ) $tiers = $pxl->api->data_tiers(array('cycle' => $pxl->cycle, 'mmr' => TRUE));
 ?>
 <div id="<?php echo $block['id'] ?>" class="tiers_block">
   <style>
@@ -32,7 +33,7 @@
           foreach ($tiers as $tier => $data) {
             $teams = array();
             
-            foreach ($data as $team) $teams[] = sprintf('<span>%s</span><span>%s</span>', $team->name, $team->mmr);
+            foreach ($data as $team) $teams[] = sprintf('<span>%s</span><span>%s</span>', $team['name'], $team['mmr']);
             
             printf(
               '<div class="tier tier--%s">

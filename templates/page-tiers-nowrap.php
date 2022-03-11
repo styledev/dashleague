@@ -2,13 +2,10 @@
   global $pxl;
   
   $pxl->season_dates();
-  $cycle = $pxl->cycle + 1;
   
-  $tiers = $pxl->stats->data_tiers(array('cycle' => $pxl->cycle + 1, 'mmr' => TRUE));
-  if ( empty($tiers) ) {
-    $cycle = $pxl->cycle;
-    $tiers = $pxl->stats->data_tiers(array('cycle' => $cycle));
-  }
+  $tiers = $pxl->api->data_tiers(array('cycle' => $pxl->cycle + 1, 'mmr' => TRUE));
+  
+  if ( empty($tiers) ) $tiers = $pxl->api->data_tiers(array('cycle' => $pxl->cycle, 'mmr' => TRUE));
 ?>
 <script src="<?php echo RES ?>/js/html2canvas.min.js"></script>
 
@@ -26,19 +23,7 @@
   .clone img{display:block;}
   .clone > img{height:480px!important;width:760px!important;}
   
-  .tiers {
-    bottom: 0;
-    color:#fff;
-    display: grid;
-    font-family: 'Oswald',sans-serif;
-    grid-column-gap: 4em;
-    grid-template-columns: repeat(3,1fr);
-    left: 0;
-    padding:1em 2em;
-    position: absolute;
-    right: 0;
-    top: 0;
-  }
+  .tiers{bottom:0;color:#fff;display:grid;font-family:'Oswald',sans-serif;grid-column-gap:4em;grid-template-columns:repeat(3,1fr);left:0;padding:1em 2em;position:absolute;right:0;top:0;}
   .tier h5{color:#fff;margin-top:0;text-align:center;}
   .tier--dasher h5, .tier--dasher span{text-shadow:0 0 10px #ff007c;}
   .tier--sprinter h5, .tier--sprinter span{text-shadow:0 0 10px #fff100;}
@@ -56,7 +41,9 @@
         foreach ($tiers as $tier => $data) {
           $teams = array();
           
-          foreach ($data as $team) $teams[] = sprintf('<span>%s</span><span>%s</span>', $team->name, $team->mmr);
+          foreach ($data as $team) {
+            $teams[] = sprintf('<span>%s</span><span>%s</span>', $team['name'], $team['mmr']);
+          }
           
           printf(
             '<div class="tier tier--%s">

@@ -166,15 +166,28 @@
           return $team;
         }
         else {
+          $season = isset($_GET['season']) ? "season-{$_GET['season']}" : 'current';
+          
           $teams = array_column(get_posts(array(
             'post_type'      => 'team',
             'posts_per_page' => -1,
             'orderby'        => 'title',
             'order'          => 'ASC',
+            'season' => $season,
           )), null, 'ID');
           
           foreach ($teams as $post_id => $data) {
-            $team = new dlTeam($data);
+            if ( isset($_GET['fields']) ) {
+              $team   = array();
+              $fields = explode(',', $_GET['fields']);
+              
+              foreach ($fields as $field) {
+                $team[$field] = $data->$field;
+              }
+            }
+            else {
+              $team = new dlTeam($data);
+            }
             
             $items[] = $team;
           }
@@ -187,93 +200,109 @@
         
         $params = array_merge($data, $_GET);
         
+        $items  = array();
+        $cycle  = isset($params['cycle']) ? $params['cycle'] : 1;
         $season = isset($params['season']) ? $params['season'] : $pxl->season['number'];
+        
         $teams = implode(',', get_posts(array(
           'post_type'      => 'team',
           'posts_per_page' => -1,
           'order'          => 'ASC',
           'orderby'        => 'title',
-          'season'         => 'current',
+          'season'         => isset($params['season']) ? "season-{$season}": 'current',
           'fields'         => 'ids'
         )));
         
-        $select = array('t.name', 't.cycle', 't.tier');
-        $join   = array();
-        $where  = '';
-        $order  = 't.name ASC';
-        
-        if ( isset($params['tier']) ) {
-          unset($select[2]);
-          $where .= $wpdb->prepare(' AND t.tier = %s', $params['tier']);
-        }
-        
-        if ( isset($params['mmr']) ) {
-          $select[] = 'SUM(tm.rank_gain) as mmr';
-          $join[]   = $wpdb->prepare('JOIN dl_teams AS tm ON tm.team_id = t.team_id AND tm.season = %d', $season);
-          $order    = "mmr DESC, $order";
-        }
-        else {
-          $join[]   = $wpdb->prepare('JOIN dl_teams AS tm ON tm.team_id = t.team_id AND tm.season = %d', $season);
-          $order    = "SUM(tm.rank_gain) DESC, $order";
-        }
-        
-        if ( isset($params['cycle']) ) {
-          unset($select[1]);
-          $where .= $wpdb->prepare(' AND t.cycle = %d AND tm.datetime <= t.end', $params['cycle']);
-        }
-        
-        $count         = count($select);
-        $select_string = implode(', ', $select);
-        $join_string   = implode(' ', $join);
-        
-        $sql = $wpdb->prepare("
-          SELECT {$select_string}
-          FROM dl_tiers AS t
-          {$join_string}
-          WHERE t.season = %d AND t.team_id IN ({$teams}){$where}
-          GROUP BY t.name, t.cycle, t.tier
-          ORDER BY t.cycle ASC, t.tier ASC, {$order}
-        ", $season);
-        
-        $_items = $wpdb->get_results($sql);
-        
-        if ( !empty($_items) ) {
-          if ( $count == 1 ) $items = array_column($_items, 'name');
-          else if ( $count == 2 ) {
-            $items = array();
+        if ( !empty($teams) ) {
+          $select = array('t.name', 't.cycle', 't.tier');
+          $join   = array();
+          $where  = '';
+          $order  = 't.name ASC';
+          
+          if ( isset($params['tier']) ) {
+            unset($select[2]);
+            $where .= $wpdb->prepare(' AND t.tier = %s', $params['tier']);
+          }
+          
+          if ( $cycle != 1 ) {
+            $join[] = $wpdb->prepare('JOIN dl_teams AS tm ON tm.team_id = t.team_id AND tm.season = %d', $season);
             
-            foreach ($_items as $item) {
-              $key = isset($item->tier) ? $item->tier : $item->cycle;
-              if ( !isset($items[$key]) ) $items[$key] = array();
-              $items[$key][] = $item->name;
+            if ( isset($params['mmr']) ) {
+              $select[] = 'SUM(tm.rank_gain) as mmr';
+              $order    = "mmr DESC, $order";
+            }
+            else {
+              $select[] = 'SUM(tm.rank_gain) as rank';
+              $order    = "rank DESC, $order";
             }
           }
-          else if ( in_array('SUM(tm.rank_gain) as mmr', $select) ) {
-            $items = array();
-            
-            foreach ($_items as $item) {
-              $tier = $item->tier;
-              
-              if ( !isset($items[$tier]) ) $items[$tier] = array();
-              
-              $items[$tier][] = $item;
-            }
+          else $select[] = '1000 as mmr';
+          
+          if ( $cycle && $cycle != 1 ) {
+            unset($select[1]);
+            $where .= $wpdb->prepare(' AND t.cycle = %d AND tm.datetime <= t.end', $params['cycle']);
           }
-          else {
-            $items = array();
-            
-            foreach ($_items as $item) {
-              $cycle = $item->cycle;
-              $tier = $item->tier;
+          
+          $count         = count($select);
+          $select_string = implode(', ', $select);
+          $join_string   = implode(' ', $join);
+          
+          $sql = $wpdb->prepare("
+            SELECT {$select_string}
+            FROM dl_tiers AS t
+            {$join_string}
+            WHERE t.season = %d AND t.team_id IN ({$teams}){$where}
+            GROUP BY t.name, t.cycle, t.tier
+            ORDER BY t.cycle ASC, t.tier ASC, {$order}
+          ", $season);
+          
+          $_items = $wpdb->get_results($sql);
+          
+          if ( !empty($_items) ) {
+            if ( $count == 1 ) $items = array_column($_items, 'name');
+            else if ( $count == 2 ) {
+              $items = array();
               
-              if ( !isset($items[$cycle]) ) $items[$cycle] = array();
-              if ( !isset($items[$cycle][$tier]) ) $items[$cycle][$tier] = array();
+              foreach ($_items as $item) {
+                $key = isset($item->tier) ? $item->tier : $item->cycle;
+                if ( !isset($items[$key]) ) $items[$key] = array();
+                $items[$key][] = $item->name;
+              }
+            }
+            else if ( in_array('SUM(tm.rank_gain) as mmr', $select) ) {
+              $items = array();
               
-              $items[$cycle][$tier][] = $item->name;
+              foreach ($_items as $item) {
+                $tier = $item->tier;
+                
+                if ( !isset($items[$tier]) ) $items[$tier] = array();
+                
+                $items[$tier][] = $item;
+              }
+            }
+            else {
+              $items = array();
+              
+              foreach ($_items as $item) {
+                $cycle = $item->cycle;
+                $tier  = $item->tier;
+                
+                if ( !isset($items[$cycle]) ) $items[$cycle] = array();
+                if ( !isset($items[$cycle][$tier]) ) $items[$cycle][$tier] = array();
+                
+                if ( isset($params['mmr']) ) {
+                  $items[$cycle][$tier][] = array(
+                    'name' => $item->name,
+                    'mmr' => $item->mmr
+                  );
+                }
+                else $items[$cycle][$tier][] = $item->name;
+              }
+              
+              if ( isset($params['cycle']) ) $items = $items[$params['cycle']];
             }
           }
         }
-        else $items = array();
         
         return $items;
       }
