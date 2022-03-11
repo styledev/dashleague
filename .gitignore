@@ -1,0 +1,5 @@
+# ignore log files and databases
+*.log
+*.sql
+*.sqlite
+.DS_Store
