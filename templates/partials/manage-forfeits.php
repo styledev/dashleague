@@ -14,7 +14,6 @@
   
   $matchIDs               = $wpdb->get_col("SELECT matchID, count(matchID) as maps FROM dl_game_stats WHERE recorded IS NULL GROUP BY matchID HAVING maps < 2");
   $adjustments_game_stats = $wpdb->get_results("SELECT * FROM dl_game_stats WHERE game_id IN ('forfeit', 'double-forfeit', 'map-forfeit') ORDER BY datetime DESC");
-  $adjustments_players    = $wpdb->get_results($wpdb->prepare("SELECT team, name, datetime, matchID, rank_gain FROM dl_players WHERE season = %d AND game_id IN ('forfeit', 'double-forfeit', 'map-forfeit') ORDER BY datetime DESC", $pxl->season['number']));
 ?>
 <style>
   select{width:100%;}
@@ -82,26 +81,6 @@
           ?>
         </tbody>
       </table>
-      <br/>
-      <h5>Players</h5>
-      <table>
-        <thead>
-          <th width="220px">MatchID</th>
-          <th width="200px">Datetime</th>
-          <th>Player</th>
-          <th>Rank Gain</th>
-        </thead>
-        <tbody>
-          <?php
-            foreach($adjustments_players as $player) {
-              printf(
-                '<tr><th>%s</th><td>%s</td><td>[%s] %s</td><td>%s</td></tr>',
-                $player->matchID, $player->datetime, $player->team, $player->name, $player->rank_gain
-              );
-            }
-          ?>
-        </tbody>
-      </table>
     </div>
   </div>
   
@@ -120,7 +99,7 @@
       
       jQuery('.teams option').prop('disabled', false).prop('hidden', false);
       
-      if ( value == 'match' ) {
+      if ( value == 'match' || value == 'double-forfeit' ) {
         el.forfeit_date.value = '';
         el.forfeit_date.readOnly = false;
         el.team_forfeit.value = '';
@@ -129,17 +108,19 @@
       else {
         var parts = value.split('=');
         
-        teams = parts[1].split('<>')
+        if ( parts.lenght == 2) teams = parts[1].split('<>');
         
         el.forfeit_date.value = parts[0];
         el.forfeit_date.readOnly = true;
         
-        options.forEach(function(opt) {
-          if ( !teams.includes(opt.innerText) ) {
-            opt.disabled = true;
-            opt.hidden   = true;
-          }
-        });
+        if ( teams ) {
+          options.forEach(function(opt) {
+            if ( !teams.includes(opt.innerText) ) {
+              opt.disabled = true;
+              opt.hidden   = true;
+            }
+          });
+        }
       }
     });
     
@@ -153,7 +134,7 @@
           opt.disabled = true;
           opt.hidden   = true;
         }
-        else if ( teams.includes(opt.innerText) ) {
+        else if ( teams && teams.includes(opt.innerText) ) {
           opt.disabled = false;
           opt.hidden   = false;
         }

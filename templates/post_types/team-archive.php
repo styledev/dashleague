@@ -1,9 +1,12 @@
-<?php $global = $pxl->stats->global(); ?>
+<?php
+  $global       = $pxl->stats->global();
+  $list_players = get_query_var('list_players');
+?>
 <style>
   .grid{justify-content: center;}
   @media (max-width: 480px) {
-    .grid__item {
-      flex: 0 0 33% !important;
+    .grid__item:not(.team--full) {
+      flex: 0 0 33%!important;
       min-width:auto;
     }
   }
@@ -22,21 +25,21 @@
           </div>
         </div>
         <div class="bar__pos bar__pos--right">
-          <div class="bar__pill bar__pill--time" title="Number of Teams">
-            <span class="bar__icon"><i class="fas fa-users-class"></i></span>
+          <a href="/teams/" class="bar__pill bar__pill--time" title="Number of Teams">
+            <span class="bar__icon"><i class="fas fa-users"></i></span>
             <?php echo $global['teams']; ?>
-          </div>
-          <div class="bar__pill bar__pill--players" title="Number of Competitors">
-            <span class="bar__icon"><i class="fas fa-head-vr"></i></span>
+          </a>
+          <a href="/teams/players/" class="bar__pill bar__pill--players" title="Number of Competitors">
+            <span class="bar__icon"><i class="fas fa-vr-cardboard"></i></span>
             <?php echo $global['players']; ?>
-          </div>
+          </a>
         </div>
       </div>
     </div>
   </div>
   <div class="alignwide">
-    <div class="grid grid--fifths">
-      <?php pxl::loop('team'); ?>
+    <div class="grid <?php echo $list_players ? 'grid--full' : 'grid--fifths'; ?>">
+      <?php pxl::loop($list_players ? 'team-players' : 'team'); ?>
     </div>
   </div>
   <?php pxl::paginate(); ?>

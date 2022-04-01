@@ -47,7 +47,7 @@
   <?php
     global $post;
     
-    the_content();
+    // the_content();
     
     $file = PARTIAL . "manage-{$post->post_name}.php";
     

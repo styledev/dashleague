@@ -1,4 +1,6 @@
-<?php $global = $pxl->stats->global(); ?>
+<?php
+  $global = $pxl->stats->global();
+?>
 <style>
   .grid{justify-content: center;}
   @media (max-width: 480px) {
@@ -23,7 +25,7 @@
         </div>
         <div class="bar__pos bar__pos--right">
           <div class="bar__pill bar__pill--players" title="Number of Competitors">
-            <span class="bar__icon"><i class="fas fa-head-vr"></i></span>
+            <span class="bar__icon"><i class="fas fa-vr-cardboard"></i></span>
             <?php echo $global['players']; ?>
           </div>
         </div>

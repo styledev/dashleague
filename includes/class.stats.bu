@@ -233,7 +233,7 @@
         else if ( $_SERVER['REQUEST_METHOD'] == 'POST' ) {
           include('class.mmr.php');
           
-          $this->maps();
+          // $this->maps();
           
           $mmr     = new dlMMR();
           $matchID = isset($_POST['matchID']) ? $_POST['matchID'] : FALSE;
@@ -243,11 +243,13 @@
             $matches = $this->games(array('where' => "matchID = '{$matchID}'"));
             $match   = !empty($matches) ? $matches[$matchID] : FALSE;
             
+            fns::error($matches);die;
+            
             if ( $match ) {
               foreach ($match['games'] as $game) $data[] = $this->stats_to_data($matchID, $game, $match);
             }
             
-            $mmr->match($data);
+            $response['ranks'] = $mmr->match($data);
             
             $wpdb->query($wpdb->prepare("UPDATE dl_game_stats SET recorded = CURRENT_TIMESTAMP WHERE matchID = '%s'", $matchID));
           }
@@ -323,7 +325,6 @@
             'map'      => $game['map'],
             'matchID'  => $matchID,
             'time'     => $game['time'],
-            'type'     => strtolower($game['type']),
           ),
           'teams' => array()
         );
@@ -352,7 +353,10 @@
               $player = (array)$player;
               
               if ( $id = $this->player_id($player) ) {
-                $player['player_id'] = $id;
+                $rank = 1000;
+                $rank += $wpdb->get_var($wpdb->prepare("SELECT SUM(rank_gain) FROM dl_players WHERE player_id = %d AND season = %d GROUP BY player_id", $id, $pxl->season['number']));
+                
+                $player['player_id'] = "{$id}|{$rank}";
                 $player['gamer_id']  = $player['id'];
                 $player['team']      = $player['tag'];
                 
@@ -366,13 +370,10 @@
           
           $data['teams'][$team['team_id']] = $team;
           
-          rsort($data['teams']);
+          asort($data['teams']);
           
           $data['teams'] = array_values($data['teams']);
         }
-        
-        // Sort by Loser first to account for Forfeits
-          fns::array_sortBy('outcome', $data['teams']);
         
         return $data;
       }
@@ -779,10 +780,6 @@
       }
       private function game_players_sort( &$game ) {
         foreach ($game['teams'] as $team => $data) {
-          if ( !isset($data['players']) ) {
-            fns::error($game);die;
-          }
-          
           $score = array_column($data['players'], 'score');
           array_multisort($score, SORT_DESC, $data['players']);
           $game['teams'][$team]['players'] = array_slice($data['players'], 0, 5);
@@ -1173,12 +1170,10 @@
         return $results;
       }
       public function team( $team_id ) {
-        global $pxl, $wpdb;
-        
-        $season = $pxl->season['number'];
+        global $wpdb;
         
         $sql = "
-          SELECT r1.name, sum(r1.MMR) + 1000 as mmr, count(r1.Matches) as matches, sum(r1.wins) as won, count(r1.Matches) - sum(r1.wins) as lost, ROUND(SUM(r1.kills)/SUM(r1.deaths), 2) as kd, SEC_TO_TIME(SUM(time_to_sec(r1.time))) as time_played
+          SELECT r1.name, sum(r1.MMR) as mmr, count(r1.Matches) as matches, sum(r1.wins) as won, count(r1.Matches) - sum(r1.wins) as lost, ROUND(SUM(r1.kills)/SUM(r1.deaths), 2) as kd, SEC_TO_TIME(SUM(time_to_sec(r1.time))) as time_played
           FROM (
             SELECT t1.name, sum(t1.rank_gain) as MMR, count(DISTINCT t1.matchID) as matches, t2.wins, sum(t1.kills) as kills, sum(t1.deaths) as deaths, SEC_TO_TIME(SUM(time_to_sec(t1.time))) as time
             FROM dl_teams AS t1
@@ -1191,11 +1186,11 @@
                 ELSE 0
               END as wins
               FROM dl_teams
-              WHERE season = {$season}
+              WHERE season = 3
               GROUP BY team_id, matchID
               ORDER BY name ASC
             ) as t2 on t1.matchID = t2.matchID AND t2.team_id = t1.team_id
-            WHERE t1.season = {$season} and t1.team_id = '{$team_id}'
+            WHERE t1.season = 3 and t1.team_id = '{$team_id}'
             GROUP BY t1.team_id, t1.matchID
             ORDER BY name ASC
           ) as r1

@@ -95,8 +95,24 @@
           'fields' => array('ID', 'display_name', 'user_nicename')
         ));
         
+        $players = array();
+        
+        foreach ($users->results as $key => $user) {
+          $profile = get_posts(array(
+            'post_type' => 'player',
+            'meta_query' => array(
+              array(
+                'key'     => 'discord_username',
+                'compare' => '=',
+                'value'   => $user->display_name
+              )
+            )
+          ));
+          
+          $players[$user->display_name] = isset($profile[0]) ? $profile[0]->post_title : $user->user_nicename;
+        }
+        
         $discord    = array_keys($this->roster['players']);
-        $players    = array_column($users->results, 'user_nicename', 'display_name');
         $remove     = array_diff($discord, array_keys($players));
         $requesting = array_diff(array_keys($players), $discord);
         

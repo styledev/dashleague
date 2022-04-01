@@ -214,9 +214,26 @@
   
 /* Partial - Team */
   .team{text-align:center;}
+  .team a{color:inherit;}
+  .team a:hover{color:var(--red);}
+  .team__logo{position:relative;}
   .team__logo a{display:block;}
   .team__logo a img{width:100%;}
-  .team__title{font-family:'Oswald', sans-serif;font-weight:600;}
+  .team__title{background-color:#000;bottom:0;color:#fff!important;display:block;font-family:'Oswald',sans-serif;font-weight:600;margin-top:-30px;padding:0 1em;position:absolute;right:0;z-index:10;}
+  
+  .team--full{align-items:center;display:flex;margin-top:1em;}
+  .team--full .team__logo a img{width:128px;}
+  .team__players{flex:1 0 auto;margin-left:20px;}
+  .team__players ul{border:1px solid #808184;border-radius:3px;columns:3;list-style-type:none;margin:0;padding:20px;text-align:left;}
+  .team__player{margin-top:0!important;}
+  .team__player--captain{font-weight:bolder;}
+  
+  @media (max-width:480px ) {
+    .team--full{flex-direction:column;}
+    .team--full .team__logo{margin-bottom:1em;width:100%;}
+    .team__players{margin:0;width:100%;}
+    .team--full .team__title{left:calc(50% - 25px);right:auto;width:50px;}
+  }
   
 /* Partial - Player*/
   .players{font-family:'Oswald',sans-serif;font-weight:600;position:relative;}

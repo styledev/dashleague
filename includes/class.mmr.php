@@ -1,347 +1,309 @@
 <?php if ( !class_exists('dlMMR') ) {
   class dlMMR {
-    function __construct() {}
+    function __construct() {
+      global $pxl;
       
+      $this->vars = array(
+        'gain_min_loss' => 5,
+        'gain'          => 105,
+        'gain_win'      => 5,
+        'k'             => 3.5,
+        'rank_factor'   => 2000,
+      );
+      
+      $this->tiers = $pxl->stats->tiers();
+      $this->cycle = array_pop($this->tiers);
+    }
+    
+    // Styledev: I decided to be stupid and play demeo while coding the MMR
+    
     // API
       public function match( $match ) {
         global $pxl, $wpdb;
         
-        $ranks_match   = !empty($match[0]['teams']) ? $match[0]['teams'] : $match[1]['teams'];
-        $ranks_players = array_fill_keys(array_column($ranks_match, 'team_id'), array());
-        $ranks_teams   = array_fill_keys(array_column($ranks_match, 'team_id'), 0);
+        $i     = 1;
+        $count = count($match);
+        $teams = !empty($match[0]['teams']) ? $match[0]['teams'] : $match[1]['teams'];
+        $mmr   = array_fill_keys(array_column($teams, 'team_id'), array());
         
-        $i = 1; $count = count($match);
-        foreach ($match as $mode => $data) {
-          if ( $data['info']['game_id'] == 'forfeit' ) {
-            $winner_mmr_avg = $wpdb->get_var($wpdb->prepare('SELECT ROUND(AVG(rank_gain)) FROM dl_teams WHERE team_id = %d AND season = %d AND rank_gain > 0', $data['winner'], $pxl->season['number']));
+        $this->match_teams($teams);
+        
+        /* Process Match Maps */
+          foreach ($match as $mode => $data) {
+            $this->match_info($data, $teams);
             
-            $teams = array_column($data['teams'], null, 'team_id');
-            
-            $team  = $teams[$data['winner']]; unset($teams[$data['winner']]);
-            $teams = array_values($teams);
-            
-            $opponent = array_pop($teams);
-            
-            $team  = array_merge($team, array(
-              'season'      => $pxl->season['number'],
-              'name'        => get_the_title($team['team_id']),
-              'opponent_id' => $opponent['team_id'],
-              'opponent'    => get_the_title($opponent['team_id']),
-              'deaths'      => 0,
-              'kills'       => 0,
-              'score'       => 0,
-              'rank_gain'   => $winner_mmr_avg,
-              'notes'       => 'Win from forfeit'
-            ));
-            
-            $this->store_team_stat($data['info'], $team);
-            break;
-          }
-          else if ( $data['info']['game_id'] == 'double-forfeit' ) {
-            foreach ($data['teams'] as $key => $team) {
-              $opponent = $key == 0 ? $data['teams'][1] : $data['teams'][0];
-              
-              $team  = array_merge($team, array(
-                'season'      => $pxl->season['number'],
-                'name'        => get_the_title($team['team_id']),
-                'opponent_id' => $opponent['team_id'],
-                'opponent'    => get_the_title($opponent['team_id']),
-                'deaths'      => 0,
-                'kills'       => 0,
-                'score'       => 0,
-                'rank_gain'   => 0,
-                'notes'       => 'Double forfeit'
-              ));
-              
-              $this->store_team_stat($data['info'], $team);
-            }
-            
-            break;
-          }
-          else if ( $data['info']['game_id'] == 'map-forfeit' ) {
-            $winner_mmr_avg = $wpdb->get_var($wpdb->prepare('SELECT ROUND(AVG(rank_gain)) FROM dl_teams WHERE team_id = %d AND season = %d AND rank_gain > 0', $data['winner'], $pxl->season['number']));
-            $ranks_teams[$data['winner']] += $winner_mmr_avg;
-            $i++;
-            continue;
-          }
-          
-          $data['info']['season'] = $pxl->season['number'];
-          if ( strlen($data['info']['time']) < 8 ) $data['info']['time'] = "00:{$data['info']['time']}";
-          $this->extract($data); // Extract and store Player IDs, Ranks, and Score
-          $this->match_id($data);
-          
-          if ( $i === 1 ) { // Set updated Rank
-            foreach ($data['teams'] as $team) $ranks_players[$team['team_id']] = $team['ranks'];
-          }
-          else {
-            foreach ($data['teams'] as $key => $team) {
-              $team_diff = array_diff_key($team['ranks'], $ranks_players[$team['team_id']]);
-              if ( !empty($team_diff) ) $ranks_players[$team['team_id']] = $ranks_players[$team['team_id']] + $team_diff;
-              $data['teams'][$key]['ranks'] = array_intersect_key($ranks_players[$team['team_id']], $data['teams'][$key]['ranks']);
-            }
-          }
-          
-          $gains = $this->mmr_rank_gain($data);
-          
-          foreach ($gains as $team_id => $rank) {
-            $ranks_teams[$team_id] += array_sum($rank);
-            
-            foreach ($rank as $id => $value) $ranks_players[$team_id][$id] += $value;
-          }
-          
-          foreach ($data['teams'] as $key => $team) {
-            $team    = array_merge($team, array('deaths' => 0, 'kills' => 0, 'score' => 0));
-            $players = $team['players'];
-            
-            // Unset data
-              unset($team['ids']);
-              unset($team['players']);
-              unset($team['ranks']);
-              unset($team['scores']);
-              
-            // Opponent ID
-              $team['opponent_id'] = $key == 0 ? $data['teams'][1]['team_id'] : $data['teams'][0]['team_id'];
-              $team['opponent']    = $key == 0 ? $data['teams'][1]['name'] : $data['teams'][0]['name'];
-              
-            if ( isset($team['score_time']) && strlen($team['score_time']) < 8 ) $team['score_time'] = "00:{$team['score_time']}";
-            
-            foreach ($players as $player) {
-              $id_rank = explode('|', $player['player_id']);
-              $player['player_id']   = $id_rank[0];
-              $player['rank_gain']   = $gains[$team['team_id']][$player['player_id']];
-              $player['opponent_id'] = $team['opponent_id'];
-              $player['opponent']    = $team['opponent'];
-              
-              $team['deaths'] += $player['deaths'];
-              $team['kills']  += $player['kills'];
-              $team['score']  += $player['score'];
-              
-              $this->store_player_stat($data['info'], $team, $player);
-            }
-            
-            // Only calculate team rank gain on last map to get average
-              if ( $i === $count ) {
-                $team['rank_gain'] = $ranks_teams[$team['team_id']] / $count;
-                $data['teams'][$key]['rank_gain'] = $team['rank_gain'];
+            /* Determine Rank Gain/Loss */
+              if ( !$this->match_forfeit($data) ) {
+                /* Map Mode Score */
+                  $mode_formula = sprintf('formula_%s', $data['info']['type']);
+                  $this->$mode_formula($data);
+                  
+                /* Gain/Loss */
+                  $data['teams'][0]['rank_gain'] = $this->formula_mmr($data['teams'][0]);
+                  $data['teams'][1]['rank_gain'] = $this->formula_mmr($data['teams'][1]);
               }
               
-            $this->store_team_stat($data['info'], $team);
+            /* Store MMR */
+              $mmr[$data['teams'][0]['team_id']][] = $data['teams'][0]['rank_gain'];
+              $mmr[$data['teams'][1]['team_id']][] = $data['teams'][1]['rank_gain'];
+              
+            /* Save Data */
+              foreach ($data['teams'] as $key => $team) {
+                unset($team['pushrate']);
+                unset($team['rank']);
+                unset($team['rank_gain']);
+                unset($team['score']);
+                unset($team['time']);
+                
+                $players = isset($team['players']) ? $team['players'] : FALSE; if ( $players ) unset($team['players']);
+                $team    = array_merge($team, array('deaths' => 0, 'kills' => 0, 'score' => 0));
+                
+                // Opponent ID
+                  $team['opponent_id'] = $key == 0 ? $data['teams'][1]['team_id'] : $data['teams'][0]['team_id'];
+                  $team['opponent']    = $key == 0 ? $data['teams'][1]['name'] : $data['teams'][0]['name'];
+                  
+                // Format Score Time
+                  if ( isset($team['score_time']) && strlen($team['score_time']) < 8 ) $team['score_time'] = "00:{$team['score_time']}";
+                  
+                // Players
+                if ( $players ) {
+                  foreach ($players as $player) {
+                    $id_rank = explode('|', $player['player_id']);
+                    $player['player_id']   = $id_rank[0];
+                    $player['opponent_id'] = $team['opponent_id'];
+                    $player['opponent']    = $team['opponent'];
+                    
+                    $team['deaths'] += $player['deaths'];
+                    $team['kills']  += $player['kills'];
+                    $team['score']  += $player['score'];
+                    
+                    $this->store_player_stat($data['info'], $team, $player);
+                  }
+                }
+                
+                // Only calculate team rank g ain on last map to get average
+                  if ( $i === $count ) {
+                    $value = $mmr[$team['team_id']];
+                    $value = array_sum($value) / count($value);
+                    
+                    if ( $value > 0 && $value < 5 ) $value = 5;
+                    else if ( $value > -5 && $value < 0 ) $value = -5;
+                    
+                    $team['rank_gain'] = $value;
+                  }
+                  
+                // Store Team Data
+                  $this->store_team_stat($data['info'], $team);
+              }
+              
+            /* Update Match */
+              $match[$mode] = $data;
+              
+            $i++;
           }
           
-          $match[$mode] = $data;
+        /* Determine Winner */
+          $winner = array_count_values(array_column($match, 'winner')); arsort($winner);
+          $winner = array_slice(array_keys($winner), 0, 5, true);
+          $match['winner'] = $winner[0];
           
-          $i++;
+        /* Final MMR Gain/Loss */
+          foreach ($mmr as $team_id => $gain_loss) {
+            $value = array_sum($gain_loss) / count($gain_loss);
+            
+            if ( $team_id == $match['winner'] && $value < 5 ) $value = 5;
+            else if ( $team_id != $match['winner'] && $value > -5 ) $value = -5;
+            
+            $mmr[$team_id] = $value;
+          }
+          
+        /* Save Report */
+          $this->match_report($match, $mmr);
+        
+        return TRUE;
+      }
+      private function match_forfeit( &$data ) {
+        global $wpdb, $pxl;
+        
+        if ( strpos($data['info']['game_id'], 'forfeit') !== FALSE ) {
+          $tier       = $wpdb->get_var($wpdb->prepare("SELECT tier FROM dl_tiers WHERE season = %d AND cycle = %d AND team_id = %d", $pxl->season['number'], $this->cycle['cycle'], $data['teams'][1]['team_id']));
+          $tier_teams = implode(', ', $wpdb->get_col($wpdb->prepare("SELECT team_id FROM dl_tiers WHERE season = %d AND cycle = %d AND tier = '%s'", $pxl->season['number'], $this->cycle['cycle'], $tier)));
+          $tier_mmr   = $wpdb->get_var($wpdb->prepare("SELECT ROUND(AVG(rank_gain)) as tier_avg FROM dl_teams WHERE season = %d AND datetime <= '%s' AND team_id IN ({$tier_teams}) AND rank_gain > 0", $pxl->season['number'], $this->cycle['end']));
+          
+          switch ($data['info']['game_id']) {
+            case 'forfeit':
+              $data['teams'][0]['rank_gain'] = -$tier_mmr;
+              $data['teams'][0]['notes']     = 'Loss from forfeit';
+              $data['teams'][1]['rank_gain'] = $tier_mmr;
+              $data['teams'][1]['notes']     = 'Win from forfeit';
+            break;
+            case 'double-forfeit':
+              $data['teams'][0]['rank_gain'] = -($tier_mmr / 2);
+              $data['teams'][0]['notes']     = 'Loss from double forfeit';
+              $data['teams'][1]['rank_gain'] = ($tier_mmr / 2);
+              $data['teams'][1]['notes']     = 'Loss from double forfeit';
+            break;
+            case 'map-forfeit':
+              $data['teams'][0]['rank_gain'] = -$tier_mmr;
+              $data['teams'][0]['notes']     = 'Loss from map forfeit';
+              $data['teams'][1]['rank_gain'] = $tier_mmr;
+              $data['teams'][1]['notes']     = 'Win from map forfeit';
+            break;
+            default:break;
+          }
+          
+          return TRUE;
         }
         
+        return FALSE;
+      }
+      private function match_info( &$data, $teams ) {
+        global $pxl;
+        
+        /* Team Info */
+          $data['winner'] = $data['teams'][0]['outcome'] == 1 ? $data['teams'][0]['team_id'] : $data['teams'][1]['team_id'];
+          
+          $teams = array_column($teams, null, 'team_id');
+          
+          $data['teams'][0]['name'] = $teams[$data['teams'][0]['team_id']]['name'];
+          $data['teams'][0]['rank'] = $teams[$data['teams'][0]['team_id']]['rank'];
+          
+          $data['teams'][1]['name'] = $teams[$data['teams'][1]['team_id']]['name'];
+          $data['teams'][1]['rank'] = $teams[$data['teams'][1]['team_id']]['rank'];
+          
+        /* Season Data */
+          $data['info']['season'] = $pxl->season['number'];
+          if ( strlen($data['info']['time']) < 8 ) $data['info']['time'] = "00:{$data['info']['time']}";
+          
+        /* MatchID */
+          if ( !isset($data['info']['matchID']) ) {
+            $date = date_create_from_format("F d Y", implode(' ', $data['info']['date'])); unset($data['info']['date']);
+            
+            $data['info']['datetime'] = $date->format("Y-m-d 00:00:00");
+            $data['info']['matchID']  = $date->format("Ymd");
+            
+            $teams = array_column($data['teams'], 'name'); sort($teams);
+            
+            $data['info']['matchID'] .= "={$teams[0]}<>{$teams[1]}";
+          }
+      }
+      private function match_teams( &$teams ) {
+        foreach ($teams as $key => $team) {
+          $team['name'] = get_the_title($team['team_id']);
+          
+          $opening = $this->team_rank($team['team_id']);
+          
+          $team['rank'] = array(
+            'opening'  => $opening,
+            'quotient' => pow(10, $opening / $this->vars['rank_factor']),
+            'escore'   => NULL
+          );
+          
+          $teams[$key] = $team;
+        }
+        
+        $team_a = $teams[0];
+        $team_b = $teams[1];
+        
+        $teams[0]['rank']['escore'] = $team_a['rank']['quotient'] / ( $team_a['rank']['quotient'] + $team_b['rank']['quotient'] ) * ( $this->vars['gain'] + $this->vars['gain_win'] );
+        $teams[1]['rank']['escore'] = $team_b['rank']['quotient'] / ( $team_b['rank']['quotient'] + $team_a['rank']['quotient'] ) * ( $this->vars['gain'] + $this->vars['gain_win'] );
+      }
+      private function match_report( $match, $mmr ) {
         $dir = wp_upload_dir();
         
         ob_start();
-          echo "RANKS TEAMS\n";
-          fns::put($ranks_teams);
-          echo "RANKS PLAYERS\n";
-          fns::put($ranks_players);
-          echo "\nMMR DATA\n";
+          echo "\nMATCH\n";
           fns::put($match);
+          echo "\nMMR\n";
+          fns::put($mmr);
         $content = str_replace(array('<pre>', '</pre>'), '', ob_get_clean());
         
         file_put_contents(
-          "{$dir['basedir']}/mmr/{$data['info']['matchID']}.txt",
+          "{$dir['basedir']}/mmr/{$match[0]['info']['matchID']}.txt",
           $content,
           FILE_APPEND
         );
-        
-        return $ranks_players;
-      }
-      private function extract( &$data ) {
-        foreach ($data['teams'] as $key => $team) {
-          if ( $team['outcome'] == 1 ) $data['winner'] = $team['team_id'];
-          
-          $data['teams'][$key]['name'] = get_the_title($team['team_id']);
-          
-          $ids_ranks = array_column($team['players'], 'player_id');
-          
-          $ids   = array();
-          $ranks = array_map(function($v) use(&$ids) {
-            $id_rank = explode('|', $v);
-            $ids[] = $id_rank[0];
-            return $id_rank[1];
-          }, $ids_ranks);
-          
-          $data['teams'][$key]['ids']    = $ids;
-          $data['teams'][$key]['ranks']  = array_combine($ids, $ranks);
-          $data['teams'][$key]['scores'] = array_combine($ids, array_column($team['players'], 'score'));
-        }
       }
       
-    // MMR
-      public function mmr_rank_gain( $match ) {
-        $match['args']    = array('win' => 70, 'var' => 100, 'multiplier' => 3);
-        $match['ranks']   = array(
-          'all'  => array(),
-          'comp' => array(),
-          'norm' => array(),
-          'avg'  => NULL, 'std' => NULL, 'min' => NULL
-        );
-        $match['scores']  = array(
-          'all'  => array(),
-          'comp' => array(),
-          'norm' => array(),
-          'avg'  => NULL, 'std' => NULL, 'min' => NULL
-        );
-        
-        // Team Specific
-          foreach ($match['teams'] as $team => $args) {
-            unset($match['teams'][$team]['players']); // for dev purposes
-            
-            $args['ranks']  = array('all' => $args['ranks']);
-            $args['scores'] = array('all' => $args['scores']);
-            
-            $this->mmr_rank_adjustment($args);
-            
-            $match['ranks']['all']  = array_merge($match['ranks']['all'], $args['ranks']['all']);
-            $match['scores']['all'] = array_merge($match['scores']['all'], $args['scores']['all']);
-            
-            $this->mmr_avg_std_min($args, 'ranks');
-            $this->mmr_avg_std_min($args, 'scores');
-            $match['teams'][$team] = $args;
-          }
-          
-          $match['teams'][0]['ranks']['norm'] = $this->mmr_normalize($match['teams'][0], 'ranks', $match['teams'][1]);
-          $match['teams'][1]['ranks']['norm'] = $this->mmr_normalize($match['teams'][1], 'ranks', $match['teams'][0]);
-          
-          $this->mmr_cross($match);
-          
-        // Combined
-          $this->mmr_avg_std_min($match, 'ranks');
-          $this->mmr_avg_std_min($match, 'scores');
-          
-          $match['ranks']['norm']  = $this->mmr_normalize($match, 'ranks');
-          $match['ranks']['comp']  = $this->mmr_compress($match, 'ranks');
-          $match['scores']['norm'] = $this->mmr_normalize($match, 'scores');
-          $match['scores']['comp'] = $this->mmr_compress($match, 'scores');
-          
-        // Modifiers
-          $this->mmr_modifiers($match);
-          
-        // Calculate
-          $this->mmr_results($match);
-          
-        return $match['gains'];
-      }
-      private function mmr_avg_std_min( &$arr, $type ) {
-        $arr["{$type}"]['avg'] = array_sum($arr[$type]['all']) / count($arr[$type]['all']);
-        $arr["{$type}"]['std'] = $this->mmr_std_dev($arr[$type]['all']);
-        $arr["{$type}"]['min'] = $arr["{$type}"]['avg'] / -$arr["{$type}"]['std'];
-      }
-      private function mmr_compress( $arr, $type, $min_max = FALSE ) {
-        $items = array();
-        
-        if ( !$min_max ) $temp  = array_merge($arr[$type]['norm'], array($arr[$type]['min']));
-        
-        $min   = $min_max ? $arr[$type]['min'] : min($temp);
-        $max   = $min_max ? $arr[$type]['max'] : max($arr[$type]['norm']);
-        
-        foreach ($arr[$type]['norm'] as $value) $items[] = ($value - $min) / ($max - $min);
-        
-        return $items;
-      }
-      private function mmr_cross( &$match ) {
-        $match['cross'] = array(
-          'norm' => array_merge($match['teams'][0]['ranks']['norm'], $match['teams'][1]['ranks']['norm']),
-        );
-        
-        $match['cross']['min'] = min(array_merge($match['cross']['norm'], array($match['teams'][0]['ranks']['min'], $match['teams'][1]['ranks']['min'])));
-        $match['cross']['max'] = max(array_merge($match['cross']['norm'], array(abs($match['teams'][0]['ranks']['min']), abs($match['teams'][1]['ranks']['min']))));
-        
-        $match['cross']['rank'] = $this->mmr_compress($match, 'cross', 'min_max');
-      }
-      private function mmr_modifiers( &$match ) {
-        $match['modifiers'] = array(0 => null, 1 => null, 2 => array(), 3 => array());
-        
-        // Mod #0
-          $match['modifiers'][0] = $match['teams'][1]['ranks']['avg'] / $match['teams'][0]['ranks']['avg'];
-          
-        // Mod #1
-          $match['modifiers'][1] = $match['teams'][0]['ranks']['avg'] / $match['teams'][1]['ranks']['avg'];
-          
-        // Mod #2
-          $ranks_scores = array();
-          foreach ($match['scores']['comp'] as $n => $score) $ranks_scores[$n] = $score / $match['ranks']['comp'][$n];
-          
-          $ranks_score_sum = array_sum($ranks_scores);
-          foreach ($ranks_scores as $value) $match['modifiers'][2][] = $value / $ranks_score_sum;
-          
-        // Mod #3
-          foreach ( $match['cross']['rank'] as $value ) $match['modifiers'][3][] = sqrt(1 / $value);
-      }
-      private function mmr_normalize( $arr, $type, $opposing = FALSE ) {
-        $items = array();
-        $avg   = $opposing ? $opposing[$type]['avg'] : $arr[$type]['avg'];
-        $std   = $opposing ? $opposing[$type]['std'] : $arr[$type]['std'];
-        
-        foreach ($arr[$type]['all'] as $value) $items[] = ($value - $avg) / $std;
-        
-        return $items;
-      }
-      private function mmr_rank_adjustment( &$arr ) {
-        $adjusted = array();
-        $total    = array_sum($arr['ranks']['all']); // Total team rank
-        $players  = count($arr['ranks']['all']) - 1;
-        
-        foreach ($arr['ranks']['all'] as $n => $player_rank) {
-          $avg        = ($total - $player_rank) / $players;                     // Average of team's other players
-          $std        = $this->mmr_std_dev($arr['ranks']['all'], $player_rank); // Team's standard deviation
-          $adjusted[] = ($avg - $player_rank) > $std ? round($avg) : $player_rank;
+    // Formulas
+      private function formula_mmr( $team ) {
+        if ( $team['outcome'] ) {
+          return max(
+            ($team['score'] - $team['rank']['escore']) * $this->vars['k'],
+            $this->vars['gain_min_loss']
+          );
         }
-        
-        $arr['ranks']['all'] = $adjusted;
-      }
-      private function mmr_results( &$match ) {
-        $gains  = array_fill_keys(array_column($match['teams'], 'team_id'), array());
-        $player = 0;
-        
-        foreach ($match['teams'] as $team_number => $team) {
-          $team_mod = $match['modifiers'][$team_number];
-          
-          foreach ($team['ids'] as $id) {
-            $gain = round(($match['args']['var'] * $match['modifiers'][2][$player] * $match['modifiers'][3][$player] * $team_mod * $match['args']['multiplier']));
-            
-            if ( $match['winner'] === $team['team_id'] ) $gain += $match['args']['win'];
-            
-            $gains[$team['team_id']][$id] = $gain;
-            
-            $player++;
-          }
+        else {
+          return min(
+            ($team['score'] - $team['rank']['escore']) * $this->vars['k'],
+            -$this->vars['gain_min_loss']
+          );
         }
-        
-        $match['gains'] = $gains;
       }
-      private function mmr_std_dev( $arr, $player_rank = FALSE) {
-        $default = $player_rank ? 0.4 : 0.316;
-        $size    = $player_rank ? count($arr) - 1 : count($arr);
-        $mu      = $player_rank ? (array_sum($arr) - $player_rank) / $size : array_sum($arr) / $size;
-        $ans     = 0;
-        
-        foreach ($arr as $elem) $ans += pow(($elem - $mu), 2);
-        
-        $std = sqrt($ans / $size);
-        
-        return $std == 0 ? $default : $std;
+      private function formula_controlpoint( &$data ) {
+        /* Team Scores*/
+          $data['teams'][0]['score'] = $this->formula_controlpoint_score($data['teams'][0], $data['teams'][1]);
+          $data['teams'][1]['score'] = $this->formula_controlpoint_score($data['teams'][1], $data['teams'][0]);
       }
-      
-    // Helpers
-      private function match_id( &$data ) {
-        if ( isset($data['info']['matchID']) ) return;
+      private function formula_controlpoint_score( $team, $opponent ) {
+        $win_gain = $team['outcome'] ? $this->vars['gain_win'] : 0;
         
-        $date = date_create_from_format("F d Y", implode(' ', $data['info']['date'])); unset($data['info']['date']);
-        
-        $data['info']['datetime'] = $date->format("Y-m-d 00:00:00");
-        $data['info']['matchID']  = $date->format("Ymd");
-        
-        $teams = array_column($data['teams'], 'name'); sort($teams);
-        
-        $data['info']['matchID'] .= "={$teams[0]}<>{$teams[1]}";
+        return ( $team['score_points'] / ( $team['score_points'] + $opponent['score_points'] ) ) * $this->vars['gain'] + $win_gain;
       }
+      private function formula_domination( &$data ) {
+        $args = array(
+          'time' => array(
+            'played'     => strtotime($data['info']['time']) - strtotime('TODAY'),
+            'remainging' => null
+          ),
+          'win' => 0.00075
+        );
+        
+        /* Time Remaining */
+          $args['time']['remaining'] = 1500 - $args['time']['played'];
+          $args['win'] *= $args['time']['remaining'];
+          
+        /* Team Scores*/
+          $data['teams'][0]['score'] = $this->formula_domination_score($args, $data['teams'][0], $data['teams'][1]);
+          $data['teams'][1]['score'] = $this->formula_domination_score($args, $data['teams'][1], $data['teams'][0]);
+          
+        return $args;
+      }
+      private function formula_domination_score( $args, $team, $opponent ) {
+        $win_gain    = $team['outcome'] ? $this->vars['gain_win'] : 0;
+        $time_played = $args['time']['played'] * 0.0066;
+        $score_team  = $team['score_points'] + $time_played + ( $team['outcome'] ? $args['win'] : 0);
+        $score_opp   = $opponent['score_points'] + $time_played + ( $opponent['outcome'] ? $args['win'] : 0);
+        
+        return ( $score_team / ( $score_team + $score_opp ) ) * $this->vars['gain'] + $win_gain;
+      }
+      private function formula_payload( &$data ) {
+        /* Team Times */
+          $data['teams'][0]['time'] = $this->formula_payload_time($data['teams'][0], $data['teams'][1]);
+          $data['teams'][1]['time'] = $this->formula_payload_time($data['teams'][1], $data['teams'][0]);
+          
+        /* Team Push Rates */
+          $data['teams'][0]['pushrate'] = $data['teams'][0]['score_percentage'] / $data['teams'][0]['time'];
+          $data['teams'][1]['pushrate'] = $data['teams'][1]['score_percentage'] / $data['teams'][1]['time'];
+          
+        /* Team Scores*/
+          $data['teams'][0]['score'] = $this->formula_payload_score($data['teams'][0], $data['teams'][1]);
+          $data['teams'][1]['score'] = $this->formula_payload_score($data['teams'][1], $data['teams'][0]);
+      }
+      private function formula_payload_time( $team, $opponent ) {
+        $time = strtotime($team['score_time']) - strtotime('TODAY');
+        
+        if ( $team['score_percentage'] < 55 && $team['score_percentage'] < $opponent ['score_percentage'] ) $time = 720;
+        
+        return $time;
+      }
+      private function formula_payload_score( $team, $opponent ) {
+        $win_gain = $team['outcome'] ? $this->vars['gain_win'] : 0;
+        
+        return ( $team['pushrate'] / ( $team['pushrate'] + $opponent['pushrate'])) * $this->vars['gain'] + $win_gain;
+      }
+    
+    // Database
       private function store_player_stat( $match, $team, $player ) {
         global $wpdb;
         
@@ -353,6 +315,14 @@
         
         $data   = array_merge($match, $team);
         $result = $wpdb->insert('dl_teams', $data);
+      }
+      private function team_rank( $team_id ) {
+        global $pxl, $wpdb;
+        
+        $sql  = $wpdb->prepare("SELECT ROUND(SUM(rank_gain)) FROM dl_teams WHERE team_id = %d AND season = %d AND datetime <= '%s'", $team_id, $pxl->season['number'], $this->cycle['start']);
+        $rank = $wpdb->get_var($sql);
+        
+        return $rank += 1000;
       }
   }
 }

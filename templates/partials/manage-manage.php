@@ -13,8 +13,8 @@
 <div class="wp-block-group alignfull">
   <div class="wp-block-group__inner-container">
     <div class>
-      <a href="/manage/users" class="btn btn--tiny<?php if ( isset($_REQUEST['new']) ) echo ' btn--ghost' ?>">All</a>
-      <a href="/manage/users?new" class="btn btn--tiny<?php if ( !isset($_REQUEST['new']) ) echo ' btn--ghost' ?>">New Players / Diff Discord</a>
+      <a href="/manage/" class="btn btn--tiny<?php if ( isset($_REQUEST['new']) ) echo ' btn--ghost' ?>">All</a>
+      <a href="/manage/?new" class="btn btn--tiny<?php if ( !isset($_REQUEST['new']) ) echo ' btn--ghost' ?>">New Players / Diff Discord</a>
       <br/>
       <br/>
     </div>

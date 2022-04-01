@@ -8,7 +8,11 @@
     'order'          => 'ASC',
   )), 'ID', 'post_title'), CASE_LOWER);
   
-  $matches    = $pxl->stats->games();
+  $tiers = $pxl->stats->tiers();
+  $query = array(
+    'where' => sprintf("gs.datetime >= '%s'", $tiers[0]['start'])
+  );
+  $matches    = $pxl->stats->games($query);
   $player_ids = array();
   
   foreach ($matches as $matchID => $match) {
@@ -30,10 +34,13 @@
           
           $player_ids[$player->name]['ids'][] = $player->id;
           $player_ids[$player->name]['ids'] = array_unique($player_ids[$player->name]['ids']);
+          
+          $player_ids[$player->name]['matches'][] = $match['games'][0]['matchID'];
+          $player_ids[$player->name]['matches'] = array_unique($player_ids[$player->name]['matches']);
         }
       }
     }
-  }
+  };
 ?>
 <style>
   table{border-collapse:collapse;width:100%;}
@@ -51,6 +58,8 @@
             <th>Tag</th>
             <th>Name</th>
             <th>Status</th>
+            <th>Matches Played</th>
+            <th>Matches</th>
             <th>#</th>
             <th>IDs</th>
           </tr>
@@ -90,13 +99,15 @@
               
               printf('
                 <tr>
+                  <td><a href="/teams/%s" target="_blank">%1$s</a></td>
                   <td>%s</td>
                   <td>%s</td>
+                  <td>%d</td>
                   <td>%s</td>
                   <td>%dx</td>
                   <td>%s</td>
                 </tr>
-              ', $player['tag'], $player['name'], $status, count($player['ids']), implode("<br>", $player['ids']));
+              ', $player['tag'], $player['name'], $status, count($player['matches']), implode('<br>', $player['matches']), count($player['ids']), implode("<br>", $player['ids']));
             }
           ?>
         </tbody>

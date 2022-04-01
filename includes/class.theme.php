@@ -75,7 +75,7 @@
           'api-manage'     => array('in_footer' => FALSE, 'deps' => array('api'), 'enqueue' => FALSE),
           'api-form-stats' => array('in_footer' => FALSE, 'deps' => array('api'), 'enqueue' => FALSE),
           'register'       => array('in_footer' => TRUE, 'localize' => array('nonce' => wp_create_nonce('wp_rest')), 'enqueue' => FALSE),
-          'icons'          => array('src' => 'https://kit.fontawesome.com/570420dfdf.js', 'crossorigin' => 'anonymous', 'enqueue' => FALSE),
+          'icons'          => array('src' => 'https://kit.fontawesome.com/89a294a8ae.js', 'crossorigin' => 'anonymous', 'enqueue' => FALSE),
           'magnific-popup' => array('enqueue' => FALSE, 'in_footer' => TRUE),
           'modal.min'      => array('deps' => array('magnific-popup'), 'enqueue' => FALSE, 'in_footer' => TRUE),
           'swiper.min'     => array('enqueue' => FALSE),
@@ -131,7 +131,10 @@
         $this->tml_add_form_field();
         $this->tml_remove_form_field();
         
+        add_rewrite_tag('%list_players%', '(players)');
+        
         add_rewrite_rule('^casting', 'index.php?page=&pagename=catch-all', 'top');
+        add_rewrite_rule('teams/(players)$', 'index.php?post_type=team&list_players=$matches[1]', 'top');
       }
       public function action_profile_update( $user_id ) {
         if ( isset($_POST['discord']) && !empty($_POST['discord']) && is_admin() ) {

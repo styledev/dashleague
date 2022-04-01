@@ -30,7 +30,7 @@
             $status = 'display';
             
             $query = array(
-              'where' => sprintf("gs.recorded IS NOT NULL AND gs.datetime >= '%s' AND gs.datetime <= '%s'", $tier['start'], $tier['end'])
+              'where' => sprintf("gs.datetime >= '%s' AND gs.datetime <= '%s'", $tier['start'], $tier['end'])
             );
             
             $matches = $pxl->stats->games($query);

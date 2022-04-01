@@ -69,12 +69,12 @@
               $md   = explode(':', $md);
               $k    = ucwords(str_replace('-', ' ', $md[0])); unset($md[0]);
               $data = array_combine($mode_fields, $md);
-            
+              
               foreach ($data as $key => $value) {
                 $modes[$k][$key] = $value;
               }
             }
-          
+            
             foreach ($modes as $m => $mode) {
               if ( empty($mode) ) {
                 $siblings = array_values(array_filter($modes));

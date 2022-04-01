@@ -8,8 +8,10 @@
   $players  = get_field('players') ? array_column(get_field('players'), 'post_title', 'ID') : array();
   $team_id  = get_the_ID();
   
+  $season_start = date('Y-m-d 00:00:00', strtotime($pxl->season['regular_start']));
+  
   $matches = $pxl->stats->games(array(
-    'where' => "(gs.matchID LIKE '%={$team}<%' OR gs.matchID LIKE '%>{$team}')"
+    'where' => "(gs.matchID LIKE '%={$team}<%' OR gs.matchID LIKE '%>{$team}') AND datetime >= '{$season_start}'"
     // 'where' => "t.team_id = {$team_id}",
     // 'join'  => 'JOIN dl_teams AS t ON t.game_id = gs.game_id'
   ));
@@ -54,11 +56,11 @@
         </div>
         <div class="bar__pos bar__pos--right">
           <div class="bar__pill bar__pill--standing">
-            <span class="bar__icon"><i class="fas fa-trophy-alt"></i></span>
+            <span class="bar__icon"><i class="fas fa-trophy"></i></span>
             <?php printf('<span>%s &nbsp;&dash;&nbsp; %s</span>', ($stats ? $stats->won : 0), ($stats ? $stats->lost : 0)); ?>
           </div>
           <div class="bar__pill bar__pill--kd">
-            <span class="bar__icon"><i class="far fa-crosshairs"></i></span>
+            <span class="bar__icon"><i class="fas fa-crosshairs"></i></span>
             <span><?php echo ($stats ? $stats->kd : 0); ?></span>
           </div>
           <div class="bar__pill bar__pill--time">
@@ -66,7 +68,7 @@
             <span><?php echo ($stats ? $stats->time_played : 0); ?></span>
           </div>
           <div class="bar__pill bar__pill--players">
-            <span class="bar__icon"><i class="fas fa-head-vr"></i></span>
+            <span class="bar__icon"><i class="fas fa-vr-cardboard"></i></span>
             <?php
               printf('
                 <span>%s</span>
@@ -101,8 +103,8 @@
             ?>
           </div>
         </div>
-        <div class="swiper-btn swiper-btn--prev"><i class="fad fa-chevron-double-left fa-2x"></i></div>
-        <div class="swiper-btn swiper-btn--next"><i class="fad fa-chevron-double-right fa-2x"></i></div>
+        <div class="swiper-btn swiper-btn--prev"><i class="fas fa-chevron-left fa-2x"></i></div>
+        <div class="swiper-btn swiper-btn--next"><i class="fas fa-chevron-right fa-2x"></i></div>
       </div>
     </div>
   </div>

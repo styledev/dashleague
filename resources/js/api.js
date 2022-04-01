@@ -47,7 +47,7 @@ class dlAPI {
       if ( confirm(message) ) {
         var callback = e.target.dataset.callback || 'reload';
         
-        dl.query(e.target.dataset.endpoint, e.target.dataset.data, 'POST', callback);
+        this.query(e.target.dataset.endpoint, e.target.dataset.data, 'POST', callback);
       }
       
       return false;
@@ -123,7 +123,7 @@ class dlAPI {
     
     xhr.open(method, url, true);
     xhr.setRequestHeader('X-WP-Nonce', vars_api.nonce);
-    xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
+    // xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
     xhr.addEventListener('readystatechange', () => {
       if (xhr.readyState == 4 && xhr.status == 200) {
         var results = JSON.parse(xhr.responseText);
@@ -140,7 +140,6 @@ class dlAPI {
     });
     
     // data = JSON.parse(data);
-    console.log(data);
     
     xhr.send(data);
   }

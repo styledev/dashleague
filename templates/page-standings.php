@@ -53,7 +53,7 @@
             <?php echo $global['time']; ?>
           </div>
           <div class="bar__pill bar__pill--players" title="players">
-            <span class="bar__icon"><i class="fas fa-head-vr"></i></span>
+            <span class="bar__icon"><i class="fas fa-vr-cardboard"></i></i></span>
             <?php echo $global['players']; ?>
           </div>
         </div>
@@ -86,7 +86,7 @@
                       </div>
                     </div>
                   ',
-                  $team->name, $pos, $slug, $team->mmr
+                  $team->name, $pos, $slug, $team->mmr + 1000
                 );
               }
             ?>

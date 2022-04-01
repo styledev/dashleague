@@ -3,7 +3,9 @@
   
   $pxl->season_dates();
   
-  $tiers = $pxl->api->data_tiers(array('cycle' => $pxl->cycle + 1, 'mmr' => TRUE));
+  $cycle = isset($_GET['cycle']) ? $_GET['cycle'] : $pxl->cycle;
+  
+  $tiers = $pxl->api->data_tiers(array('cycle' => $cycle, 'mmr' => TRUE));
   
   if ( empty($tiers) ) $tiers = $pxl->api->data_tiers(array('cycle' => $pxl->cycle, 'mmr' => TRUE));
 ?>

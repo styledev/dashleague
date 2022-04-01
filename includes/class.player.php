@@ -1,78 +1,50 @@
 <?php if ( !class_exists('dlPlayer') ) {
   class dlPlayer {
     function __construct( $player = FALSE ) {
-      
       $this->id = $player ? $player->ID : get_the_ID();
-      
-      $teams = get_posts(array(
-        'post_type' => 'team',
-        'meta_query' => array(
-          array(
-            'key'     => 'players',
-            'value'   => '"' . $this->id . '"',
-            'compare' => 'LIKE'
-          )
-        )
-      ));
-      
-      // fns::put($teams);die;
-      
-      $this->active  = FALSE;
-      $this->captain = FALSE;
-      $this->team    = FALSE;
-      
-      
+      $this->discord = get_field('discord_username', $this->id);
       
       $this->init();
-      
-      fns::put($this);
-      die;
     }
       
     // Player Details
       public function init() {
-        // $this->get_profile();
-        // $this->get_team();
-        
-        // $this->active  = is_object($this->team) && isset($this->team->roster['players'][$this->discord]);
-        // $this->captain = is_object($this->team) && isset($this->team->roster['captains'][$this->discord]);
-      }
-      private function get_profile() {
-        $this->profile = FALSE;
-        
-        if ( $this->discord = $this->user->get('discord') ) {
-          $profile = get_posts(array(
-            'post_type' => 'player',
-            'meta_query' => array(
-              array(
-                'key'     => 'discord_username',
-                'compare' => '=',
-                'value'   => $this->discord
-              )
-            )
-          ));
-          
-          if ( !empty($profile) ) {
-            $player = $profile[0];
-            
-            $this->profile = array(
-              'ID'      => $player->ID,
-              'name'    => $player->post_title,
-            );
-          }
-        }
-      }
-      private function get_team() {
-        $this->team = $this->user->get('dl_team');
-        
-        if ( is_numeric($this->team) ) {
-          if ( $team = get_post($this->team) ) {
-            $this->team = new dlTeam($team);
-          }
-        }
+        $this->get_team();
       }
       
     // Helpers
-      
+      public function get_matches() {
+        global $wpdb;
+        
+        $this->matches = $wpdb->get_results($wpdb->prepare("SELECT * FROM dl_players WHERE player_id = %d AND season = 4", $this->id));
+      }
+      public function get_team() {
+        $teams = get_posts(array(
+          'post_type' => 'team',
+          'meta_query' => array(
+            array(
+              'key'     => 'players',
+              'value'   => '"' . $this->id . '"',
+              'compare' => 'LIKE'
+            )
+          )
+        ));
+        
+        $this->team    = isset($teams[0]) ? new dlTeam($teams[0]) : FALSE;
+        $this->active  = isset($this->team->roster['players'][$this->discord]);
+        $this->captain = isset($this->team->captains['players'][$this->discord]);
+      }
+      public function get_stats() {
+        if ( !isset($this->matches) ) $this->get_matches();
+        
+        $this->stats = array(
+          'kills'  => array_sum(array_column($this->matches, 'kills')),
+          'deaths' => array_sum(array_column($this->matches, 'deaths')),
+          'score'  => array_sum(array_column($this->matches, 'score')),
+          'time'   => 0,
+        );
+        
+        $this->stats['kd'] = $this->stats['deaths'] > 0 ? round($this->stats['kills'] / $this->stats['deaths'], 2) : 'N/A';
+      }
   }
 }

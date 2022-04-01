@@ -46,6 +46,21 @@
       <?php
         if ( $team && $user->captain ) :
           echo '<br><div class="notice notice--red center-text"><small>Players shown on the right side below but not on the left have not signed up on the site yet. If you remove them you won\'t be able to re-add them until they do.</small></div>';
+          
+          if ( !empty($team->roster['requesting']) ) {
+            echo '<h3>Players Requesting to join your team</h3><ul>';
+            foreach ($team->roster['requesting'] as $d => $p) {
+              printf('
+                <li>
+                  <strong>%s</strong>
+                  <small>%s</small>
+                </li>
+                ', $p, $d
+              );
+            }
+            echo '</ul>';
+          }
+          
           acf_form(array(
             'post_id'           => $team->id,
             'post_title'        => FALSE,

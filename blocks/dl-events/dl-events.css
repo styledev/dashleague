@@ -39,7 +39,7 @@
 }
 @media( max-width:480px ) {
   .event{flex-wrap:wrap;justify-content:center;padding:30px;}
-  .event__details{margin:1em 0;text-align:center}
+  .event__details{flex:1 0 100%;margin:1em 0;text-align:center}
   .game{margin-top:1em;}
   .game .team{flex:1;}
   .game__details{text-align:center;}
