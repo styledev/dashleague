@@ -779,10 +779,6 @@
       }
       private function game_players_sort( &$game ) {
         foreach ($game['teams'] as $team => $data) {
-          if ( !isset($data['players']) ) {
-            fns::error($game);die;
-          }
-          
           $score = array_column($data['players'], 'score');
           array_multisort($score, SORT_DESC, $data['players']);
           $game['teams'][$team]['players'] = array_slice($data['players'], 0, 5);
@@ -919,7 +915,7 @@
             "ROUND((d.shots_hit/d.shots) * 100, 1) AS `Accuracy`",
             "SUM(d.captures) AS `Captures`",
             "SUM(d.counters) AS `Counters`",
-            "SUM(d.push_time) AS `Push/Seconds`",
+            "SUM(d.push_time) AS `Push (seconds)`",
             "ROUND({$stats['kills']} / {$stats['time']}, 2) AS `Kills/min`",
             "ROUND({$stats['kills']} / {$stats['maps']}, 2) AS `Kills/map`",
             "{$stats['score']} AS `Score`",

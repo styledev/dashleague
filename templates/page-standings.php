@@ -122,6 +122,8 @@
                         break;
                     }
                     
+                    $team = isset($teams[$player->team_id]) ? $teams[$player->team_id] : '';
+                    
                     printf(
                       '<div class="stat_player" data-key="%s">
                         <span class="stat_player__pos">%1$s.</span>
@@ -131,7 +133,7 @@
                           <span class="stat_player__stat">%s</span>
                         </a>
                       </div>',
-                      $pos, $player->slug, $player->name, $teams[$player->team_id], $stat
+                      $pos, $player->slug, $player->name, $team, $stat
                     );
                   }
                 echo '</div>';

@@ -247,8 +247,8 @@
               $order    = "mmr DESC, $order";
             }
             else {
-              $select[] = 'SUM(tm.rank_gain) as rank';
-              $order    = "rank DESC, $order";
+              $select[] = 'SUM(tm.rank_gain) as `rank`';
+              $order    = "`rank` DESC, $order";
             }
           }
           else $select[] = '1000 as mmr';
@@ -350,7 +350,7 @@
       }
       
     /* Tools */
-      public function tool_tiers( $request ) {
+      public function tool_tiers( $data = array() ) {
         global $pxl, $wpdb;
         
         $response = array('status' => 'success');
@@ -361,10 +361,38 @@
         );
         
         $pxl->season_dates();
+        
+        $teams = get_posts(array(
+          'fields'         => 'ids',
+          'posts_per_page' => -1,
+          'post_type'      => 'team',
+          'season'         => 'current',
+        ));
+        
+        if ( !empty($teams) ) $teams = implode(', ', $teams);
+        
         $cycles = $wpdb->get_results($wpdb->prepare("SELECT cycle, start, end FROM dl_tiers WHERE season = 4 GROUP BY cycle ORDER BY cycle ASC", $pxl->season['number']));
         $cycle  = array_pop($cycles);
-        $cycle_results = $wpdb->get_results($wpdb->prepare("SELECT name, team_id, sum(rank_gain) + 1000 as mmr FROM dl_teams WHERE season = %d AND datetime <= '%s' GROUP BY name ORDER BY mmr DESC", $pxl->season['number'], $cycle->end), ARRAY_A);
+        
+        $cylce_teams   = $wpdb->prepare("SELECT name, team_id, sum(rank_gain) + 1000 as mmr FROM dl_teams WHERE season = %d AND datetime <= '%s' AND team_id IN ({$teams}) GROUP BY name ORDER BY mmr DESC", $pxl->season['number'], $cycle->end);
+        $cycle_results = $wpdb->get_results($cylce_teams, ARRAY_A);
         $tiers = array_chunk($cycle_results, 11);
+        
+        if ( count($tiers[2]) < count($tiers[1]) ) {
+          $diff   = ROUND((count($tiers[1]) - count($tiers[2])) / 2, 0);
+          $offset = count($tiers[1]) - $diff;
+          $move   = array_splice($tiers[1], $offset, $diff);
+          
+          $tiers[2] = array_merge($move, $tiers[2]);
+        }
+        
+        if ( count($tiers[1]) < count($tiers[0]) ) {
+          $diff   = ROUND((count($tiers[0]) - count($tiers[1])) / 2, 0);
+          $offset = count($tiers[0]) - $diff;
+          $move   = array_splice($tiers[0], $offset, $diff);
+          
+          $tiers[1] = array_merge($move, $tiers[1]);
+        }
         
         foreach ($tiers as $tier => $teams) {
           switch ($tier) {

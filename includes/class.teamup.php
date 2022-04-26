@@ -15,6 +15,11 @@
         $id    = 'teamup_events';
         $clear = is_user_logged_in() && (isset($_GET['clear']) && $_GET['clear'] == 'cache');
         
+        if ( $clear ) {
+          delete_option($id);
+          delete_option("{$id}_cached_on");
+        }
+        
         if ( !$clear && $this->cached($id) ) {
           if ( $items = get_option($id) ) return $items;
         }
@@ -126,8 +131,8 @@
                 %s
               </div>
             </div>',
-            get_permalink($team_a->ID), $team_a_logo,
-            get_permalink($team_b->ID), $team_b_logo,
+            (isset($team_a->ID) ? get_permalink($team_a->ID) : ''), $team_a_logo,
+            (isset($team_b->ID) ? get_permalink($team_b->ID) : ''), $team_b_logo,
             $teams[0], $teams[2],
             $event->start_dt,
             $start->format('F jS, Y'), $start->format('g:ia T'),

@@ -19,7 +19,8 @@
                 "control-point": "Control Point",
                 "deathmatch": "Deathmatch",
                 "domination": "Domination",
-                "payload": "Payload"
+                "payload": "Payload",
+                "ball_arena": "Ball Arena"
             },
             "default_value": false,
             "allow_null": 0,
@@ -53,7 +54,8 @@
                 "pay_canyon": "pay_canyon",
                 "Payload_Blue_Art": "Payload_Blue_Art",
                 "pay_launchpad": "pay_launchpad",
-                "Payload_Orange_Art": "Payload_Orange_Art"
+                "Payload_Orange_Art": "Payload_Orange_Art",
+                "ball_arena": "ball_arena"
             },
             "default_value": [
                 "choose"
@@ -84,5 +86,5 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
-    "modified": 1641313138
+    "modified": 1650166042
 }

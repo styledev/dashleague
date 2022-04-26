@@ -481,6 +481,14 @@
         $this->cycle        = $cycle ? $cycle : 6;
         $this->season_dates = $dates;
         
+        if ( isset($dates['new_player_cut-off']) && !empty($dates['new_player_cut-off']) ) {
+          $lock = DateTime::createFromFormat("m/d/Y", $dates['new_player_cut-off']);
+          $date = new datetime('now');
+          
+          $this->season_dates['locked'] = $date->format('Ymd') >= $lock->format('Ymd');
+        }
+        else $this->season_dates['locked'] = FALSE;
+        
         return $season;
       }
       private function dl_team_options( $user = FALSE ) {
@@ -504,6 +512,8 @@
     // Functions : TML
       public function tml_add_form_field() {
         if ( function_exists('tml_add_form_field') ) {
+          $this->season_dates();
+          
           $teams = array('Free Agent' => 'Free Agent (no team)') + array_column(get_posts(array(
             'post_type'      => 'team',
             'posts_per_page' => -1,
@@ -521,7 +531,7 @@
                 'discord'     => array( 'priority' => 7, 'label' => 'Discord Name w/Number', 'description' => 'If you need this changed please contact a moderator.', 'attributes' => array('disabled' => true)),
               'hr2' => array( 'priority' => 8, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/>Player Info<hr class="hr hr--thin"/>')),
                 'nickname'    => array( 'priority' => 9, 'label' => 'Gamertag', 'render_args' => array('control_before' => '<small>(i.e. handle, nickname, etc)</small>')),
-                'dl_team'     => array( 'priority' => 9, 'label' => 'Team', 'type' => 'dropdown', 'options' => $teams, 'description' => 'Changing this will de-roster you from your current team.'),
+                'dl_team'     => array( 'priority' => 9, 'label' => 'Team', 'type' => 'dropdown', 'options' => $teams, 'description' => ($this->season_dates['locked'] ? 'Rosters are now locked' : 'Changing this will de-roster you from your current team.')),
                 'dl_timezone' => array( 'priority' => 9, 'label' => 'Timezone', 'type' => 'custom', 'content' => sprintf('<select name="dl_timezone" id="dl_timezone" class="tml-field">%s</select>', $timezones)),
               'hr3' => array( 'priority' => 9, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/>Site Credentials<hr class="hr hr--thin"/>')),
             ),
@@ -531,11 +541,15 @@
                 'user_email' => array( 'priority' => 7, 'label' => __('Email'), 'type' => 'email', 'id' => 'user_email', 'attributes' => array('maxlength' => 200)),
               'hr2' => array( 'priority' => 8, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/>Player Info<hr class="hr hr--thin"/>')),
                 'nickname'    => array( 'priority' => 8, 'label' => __('Gamertag'), 'render_args' => array('control_before' => '<small>(i.e. handle, nickname, etc)</small>')),
-                'dl_team'     => array( 'priority' => 8, 'label' => __('Team'), 'type' => 'dropdown', 'options' => $teams),
+                'dl_team'     => array( 'priority' => 8, 'label' => __('Team'), 'type' => 'dropdown', 'options' => ( $this->season_dates['locked'] ? array('Free Agent' => 'Free Agent (no team)') : $teams), 'description' => ($this->season_dates['locked'] ? 'Rosters are locked for the Season' : '')),
                 'dl_timezone' => array( 'priority' => 8, 'label' => 'Timezone', 'type' => 'custom', 'content' => sprintf('<select name="dl_timezone" id="dl_timezone" class="tml-field">%s</select>', $timezones)),
               'hr3' => array( 'priority' => 9, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/>Site Credentials<hr class="hr hr--thin"/>')),
             )
           );
+          
+          if ( $this->season_dates['locked'] ) {
+            $form_fields['profile']['dl_team']['attributes'] = array('disabled' => true);
+          }
           
           $user    = wp_get_current_user();
           $default = array('type' => 'text');
