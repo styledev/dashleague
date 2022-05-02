@@ -1,7 +1,7 @@
 <?php /* Template Name: Matches */
   wp_enqueue_script('api');
-  $tiers = $pxl->stats->tiers();
-  rsort($tiers);
+  $cycles = $pxl->stats->cycles();
+  rsort($cycles);
   
   $maps = array(
     'pay_canyon'           => 'Canyon',
@@ -24,7 +24,7 @@
       <div class="matches__container alignwide">
         <br/>
         <?php
-          foreach ($tiers as $tier) {
+          foreach ($cycles as $tier) {
             if ( $tier['cycle'] == 7 ) continue;
             
             $status = 'display';

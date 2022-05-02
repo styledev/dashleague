@@ -8,9 +8,9 @@
     'order'          => 'ASC',
   )), 'ID', 'post_title'), CASE_LOWER);
   
-  $tiers = $pxl->stats->tiers();
+  $cycles = $pxl->stats->cycles();
   $query = array(
-    'where' => sprintf("gs.datetime >= '%s'", $tiers[0]['start'])
+    'where' => sprintf("gs.datetime >= '%s'", $cycles[0]['start'])
   );
   $matches    = $pxl->stats->games($query);
   $player_ids = array();

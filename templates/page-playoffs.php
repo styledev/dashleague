@@ -1,7 +1,7 @@
 <?php /* Template Name: Playoff Matches */
   wp_enqueue_script('api');
-  $tiers = $pxl->stats->tiers();
-  rsort($tiers);
+  $cycles = $pxl->stats->cycles();
+  rsort($cycles);
   
   $maps = array(
     'pay_canyon'           => 'Canyon',

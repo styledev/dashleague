@@ -843,8 +843,8 @@
         }
       }
       
-    // Tiers
-      public function tiers() {
+    // Cycles
+      public function cycles() {
         global $pxl, $wpdb;
         
         $sql = $wpdb->prepare("

@@ -11,8 +11,9 @@
         'rank_factor'   => 2000,
       );
       
-      $this->tiers = $pxl->stats->tiers();
-      $this->cycle = array_pop($this->tiers);
+      $this->cycles  = $pxl->stats->cycles();
+      $this->rolling = array_slice($this->cycles, -3, 1)[0];
+      $this->cycle   = array_pop($this->cycles);
     }
     
     // Styledev: I decided to be stupid and play demeo while coding the MMR
@@ -128,25 +129,34 @@
         if ( strpos($data['info']['game_id'], 'forfeit') !== FALSE ) {
           $tier       = $wpdb->get_var($wpdb->prepare("SELECT tier FROM dl_tiers WHERE season = %d AND cycle = %d AND team_id = %d", $pxl->season['number'], $this->cycle['cycle'], $data['teams'][1]['team_id']));
           $tier_teams = implode(', ', $wpdb->get_col($wpdb->prepare("SELECT team_id FROM dl_tiers WHERE season = %d AND cycle = %d AND tier = '%s'", $pxl->season['number'], $this->cycle['cycle'], $tier)));
-          $tier_mmr   = $wpdb->get_var($wpdb->prepare("SELECT ROUND(AVG(rank_gain)) as tier_avg FROM dl_teams WHERE season = %d AND datetime <= '%s' AND team_id IN ({$tier_teams}) AND rank_gain > 0", $pxl->season['number'], $this->cycle['end']));
+          $mmr_avg    = array(
+            'tier'    => $wpdb->get_var($wpdb->prepare("SELECT ROUND(AVG(rank_gain)) as tier_avg FROM dl_teams WHERE season = %d AND datetime >= '%s' AND datetime <= '%s' AND team_id IN ({$tier_teams}) AND rank_gain > 0", $pxl->season['number'], $this->cycle['start'], $this->cycle['end'])),
+            'rolling' => $wpdb->get_var($wpdb->prepare("SELECT ROUND(AVG(rank_gain)) as tier_avg FROM dl_teams WHERE season = %d AND datetime >= '%s' AND datetime <= '%s' AND team_id IN ({$tier_teams}) AND rank_gain > 0", $pxl->season['number'], $this->rolling['start'], $this->cycle['end'])),
+            'team'    => $wpdb->get_var($wpdb->prepare("SELECT ROUND(AVG(rank_gain)) as tier_avg FROM dl_teams WHERE season = %d AND team_id >= %d AND rank_gain > 0", $pxl->season['number'], $data['teams'][0]['team_id'])),
+          );
+          
+          $mmr = max(array_values($mmr_avg));
           
           switch ($data['info']['game_id']) {
             case 'forfeit':
-              $data['teams'][0]['rank_gain'] = -$tier_mmr;
+              $data['teams'][0]['rank_gain'] = -$mmr;
               $data['teams'][0]['notes']     = 'Loss from forfeit';
-              $data['teams'][1]['rank_gain'] = $tier_mmr;
+              $data['teams'][1]['rank_gain'] = $mmr;
               $data['teams'][1]['notes']     = 'Win from forfeit';
             break;
             case 'double-forfeit':
-              $data['teams'][0]['rank_gain'] = -($tier_mmr / 2);
+              $opp_mmr = $wpdb->get_var($wpdb->prepare("SELECT ROUND(AVG(rank_gain)) as tier_avg FROM dl_teams WHERE season = %d AND team_id >= %d AND rank_gain > 0", $pxl->season['number'], $data['teams'][1]['team_id']));
+              $opp_mmr = max(array($mmr, $opp_mmr));
+              
+              $data['teams'][0]['rank_gain'] = -$mmr;
               $data['teams'][0]['notes']     = 'Loss from double forfeit';
-              $data['teams'][1]['rank_gain'] = ($tier_mmr / 2);
+              $data['teams'][1]['rank_gain'] = -$opp_mmr;
               $data['teams'][1]['notes']     = 'Loss from double forfeit';
             break;
             case 'map-forfeit':
-              $data['teams'][0]['rank_gain'] = -$tier_mmr;
+              $data['teams'][0]['rank_gain'] = -$mmr;
               $data['teams'][0]['notes']     = 'Loss from map forfeit';
-              $data['teams'][1]['rank_gain'] = $tier_mmr;
+              $data['teams'][1]['rank_gain'] = $mmr;
               $data['teams'][1]['notes']     = 'Win from map forfeit';
             break;
             default:break;
