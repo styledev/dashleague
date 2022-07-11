@@ -79,11 +79,16 @@
       }
       
       if ( is_null($status) || $status == 'process' ) {
+        $args = array('action' => $action, 'matchID' => $matchID);
+        
+        if ( isset($_GET['cycle']) ) $args['cycle'] = $_GET['cycle'];
+        else if ( $cycle ) $args['cycle'] = $cycle;
+        
         printf('
           <div class="game__submit">
             <button class="btn btn--small" data-action="submitMatch" data-endpoint="stats/match" data-callback="reload" data-data=\'%s\'>%s</button>
           </div>',
-          json_encode(array('action' => $action, 'matchID' => $matchID)), $submit
+          json_encode($args), $submit
         );
       }
     ?></div>

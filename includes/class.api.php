@@ -93,7 +93,7 @@
         )));
         
         $sql = $wpdb->prepare("
-          SELECT r1.name, sum(r1.rank_gain) as mmr, count(r1.matches) as matches, sum(r1.wins) as wins, count(r1.matches) - sum(r1.wins) as losses
+          SELECT r1.name, sum(r1.rank_gain) +1000 as mmr, count(r1.matches) as matches, sum(r1.wins) as wins, count(r1.matches) - sum(r1.wins) as losses
           FROM (
             SELECT t1.name, sum(t1.rank_gain) as rank_gain, count(DISTINCT t1.matchID) as matches, t2.wins
             FROM dl_teams AS t1
@@ -149,10 +149,10 @@
           SELECT t.name, group_concat(distinct t.opponent) as opponents
           FROM dl_teams t
           {$join_string}
-          WHERE t.season = %d AND t.team_id IN ({$teams}){$where}
+          WHERE t.season = %d AND t.team_id IN ({$teams}) AND (t.notes IS NULL OR t.notes NOT LIKE '%s'){$where}
           GROUP BY t.name
           ORDER BY t.name ASC, t.opponent ASC
-        ", $season);
+        ", $season, '%double%');
         
         $items = array();
         $_items = array_column($wpdb->get_results($sql), 'opponents', 'name');
@@ -192,19 +192,17 @@
           )), null, 'ID');
           
           foreach ($teams as $post_id => $data) {
+            $team = new dlTeam($data);
+            
             if ( isset($_GET['fields']) ) {
-              $team   = array();
+              $data = array( 'name' => $team->name );
+              
               $fields = explode(',', $_GET['fields']);
               
-              foreach ($fields as $field) {
-                $team[$field] = $data->$field;
-              }
-            }
-            else {
-              $team = new dlTeam($data);
+              foreach ($fields as $field) $data[$field] = $team->$field;
             }
             
-            $items[] = $team;
+            $items[] = $data;
           }
           
           return $items;

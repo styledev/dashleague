@@ -11,9 +11,9 @@
         'rank_factor'   => 2000,
       );
       
-      $this->cycles  = $pxl->stats->cycles();
+      $this->cycles  = array_column($pxl->stats->cycles(), null, 'cycle');
       $this->rolling = array_slice($this->cycles, -3, 1)[0];
-      $this->cycle   = array_pop($this->cycles);
+      $this->cycle   = isset($_POST['cycle']) ? $this->cycles[$_POST['cycle']] : array_pop($this->cycles);
     }
     
     // Styledev: I decided to be stupid and play demeo while coding the MMR
@@ -85,10 +85,16 @@
                 // Only calculate team rank g ain on last map to get average
                   if ( $i === $count ) {
                     $value = $mmr[$team['team_id']];
+                    
                     $value = array_sum($value) / count($value);
                     
                     if ( $value > 0 && $value < 5 ) $value = 5;
                     else if ( $value > -5 && $value < 0 ) $value = -5;
+                    
+                    if ( $data['info']['game_id'] != 'double-forfeit' ) {
+                      if ( $team['team_id'] == $data['winner'] && $value < 0 ) $value *= -1;
+                      else if ( $team['team_id'] != $data['winner'] && $value > 0 ) $value *= -1;
+                    }
                     
                     $team['rank_gain'] = $value;
                   }
@@ -146,11 +152,11 @@
             break;
             case 'double-forfeit':
               $opp_mmr = $wpdb->get_var($wpdb->prepare("SELECT ROUND(AVG(rank_gain)) as tier_avg FROM dl_teams WHERE season = %d AND team_id >= %d AND rank_gain > 0", $pxl->season['number'], $data['teams'][1]['team_id']));
-              $opp_mmr = max(array($mmr, $opp_mmr));
+              $mmr = max(array($mmr, $opp_mmr));
               
               $data['teams'][0]['rank_gain'] = -$mmr;
               $data['teams'][0]['notes']     = 'Loss from double forfeit';
-              $data['teams'][1]['rank_gain'] = -$opp_mmr;
+              $data['teams'][1]['rank_gain'] = -$mmr;
               $data['teams'][1]['notes']     = 'Loss from double forfeit';
             break;
             case 'map-forfeit':
@@ -330,6 +336,7 @@
         global $pxl, $wpdb;
         
         $sql  = $wpdb->prepare("SELECT ROUND(SUM(rank_gain)) FROM dl_teams WHERE team_id = %d AND season = %d AND datetime <= '%s'", $team_id, $pxl->season['number'], $this->cycle['start']);
+        // fns::error($sql);
         $rank = $wpdb->get_var($sql);
         
         return $rank += 1000;

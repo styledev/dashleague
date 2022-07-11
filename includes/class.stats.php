@@ -900,6 +900,7 @@
         $query = array(
           'select' => array(
             'd.name AS `Name`',
+            'pl.seasons', 'pl.season_list',
             'SUBSTRING(MAX(CONCAT(d.id, d.team)), LENGTH(d.id) + 1) AS `Team`',
             'ROUND(AVG(opp.mmr) / 100, 2) as `SOPP | Strength of Opponent`',
             "ROUND({$stats['time']}, 2) AS `TTP | Total Time Played`",
@@ -939,10 +940,11 @@
             %1$s
             FROM %2$s as d
             JOIN ( SELECT team_id, SUM(rank_gain) as mmr FROM dl_teams WHERE season = %4$d GROUP BY team_id ) AS opp ON d.opponent_id = opp.team_id
+            JOIN ( SELECT player_id, GROUP_CONCAT(DISTINCT season) as `season_list`, COUNT(DISTINCT season) as `seasons` FROM dl_players GROUP BY player_id ) AS pl ON d.player_id = pl.player_id
             JOIN (
               SELECT m.player_id, GROUP_CONCAT(DISTINCT m.type, \':\', m.maps, \':\', m.time, \':\', m.score, \':\', m.score_min) AS modes
               FROM (
-                SELECT d.player_id, m.meta_value AS `type`, count(m.meta_value) as `maps`, (SUM(TIME_TO_SEC(d.time)) / 60) as `time`, SUM(d.score) as `score`, ROUND(SUM(d.score) / (SUM(TIME_TO_SEC(d.time)) / 60), 2) as `score_min`
+                SELECT d.player_id, GROUP_CONCAT(DISTINCT season) as `seasons`, m.meta_value AS `type`, count(m.meta_value) as `maps`, (SUM(TIME_TO_SEC(d.time)) / 60) as `time`, SUM(d.score) as `score`, ROUND(SUM(d.score) / (SUM(TIME_TO_SEC(d.time)) / 60), 2) as `score_min`
                 FROM dl_players as d
                 JOIN wp_zoe0kio31p_postmeta AS m ON d.map_id = m.post_id AND m.meta_key = \'mode\'
                 %3$s

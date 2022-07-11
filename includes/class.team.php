@@ -22,7 +22,7 @@
         $season = isset($_GET['season']) ? $_GET['season'] : $pxl->season['number'];
         
         $sql = $wpdb->prepare("
-          SELECT sum(r1.rank_gain) as mmr, count(r1.matches) as matches, sum(r1.wins) as wins, count(r1.matches) - sum(r1.wins) as losses
+          SELECT sum(r1.rank_gain) + 1000 as mmr, count(r1.matches) as matches, sum(r1.wins) as wins, count(r1.matches) - sum(r1.wins) as losses
           FROM (
             SELECT t1.name, sum(t1.rank_gain) as rank_gain, count(DISTINCT t1.matchID) as matches, t2.wins
             FROM dl_teams AS t1

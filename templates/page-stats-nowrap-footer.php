@@ -19,6 +19,7 @@
   .highlight{background-color:rgba(30,118,189,.8);color:#fff;}
   tr:hover .sorting_1{color:#fff;}
 </style>
+
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/dt/dt-1.10.24/b-1.7.0/sb-1.0.1/datatables.min.css"/>
 <script type="text/javascript" src="https://cdn.datatables.net/v/dt/dt-1.10.24/b-1.7.0/sb-1.0.1/datatables.min.js"></script>
 <script type="text/javascript" src="https://cdn.datatables.net/plug-ins/1.10.24/features/deepLink/dataTables.deepLink.min.js"></script>

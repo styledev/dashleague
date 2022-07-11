@@ -1,5 +1,5 @@
 /* Resets */
-  input[type="text"], input[type="password"], input[type="submit"], input[type="email"], textarea, select{-webkit-appearance: none;-moz-appearance:none;}
+  input[type="text"], input[type="password"], input[type="submit"], input[type="email"], textarea{-webkit-appearance: none;-moz-appearance:none;}
   input, textarea{background-color:transparent;border:1px solid;color:inherit;font:inherit;box-sizing:border-box;padding:5px 12px;}
   input[type="submit"]{border:none;cursor:pointer;transition:0.2s all;padding:calc( 0.5rem + 1px ) calc( 0.75rem + 1px );}
   ::-webkit-file-upload-button {border-radius:5px;font-size:inherit;-webkit-appearance: none;padding:0.2em 0.5em;}

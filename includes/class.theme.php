@@ -137,6 +137,27 @@
         add_rewrite_rule('teams/(players)$', 'index.php?post_type=team&list_players=$matches[1]', 'top');
       }
       public function action_profile_update( $user_id ) {
+        $user = get_userdata($user_id);
+        
+        if ( $discord = $user->get('discord') ) {
+          $profile = get_posts(array(
+            'post_type' => 'player',
+            'meta_query' => array(
+              array(
+                'key'     => 'discord_username',
+                'compare' => '=',
+                'value'   => $discord
+              )
+            )
+          ));
+          
+          if ( isset($profile[0]) && isset($_POST['nickname']) && $_POST['nickname'] != $profile[0]->post_title ) {
+            $post = $profile[0];
+            $post->post_title = $_POST['nickname'];
+            wp_update_post($post, FALSE, FALSE);
+          }
+        }
+        
         if ( isset($_POST['discord']) && !empty($_POST['discord']) && is_admin() ) {
           remove_action('profile_update', array($this, 'action_profile_update'), 10 );
           
@@ -428,8 +449,8 @@
           else if ( $date >= $dates['regular_start'] && $date <= $dates['regular_end'] ) {
             $diff    = date_diff(date_create($date), date_create($dates['regular_start']));
             $week    = floor($diff->days / 7);
-            $weeks   = array('one', 'one', 'two', 'two', 'three', 'three', 'four', 'four', 'five', 'five', 'six', 'six');
-            $numbers = array('zero' => 0, 'one' => 1, 'two' => 2, 'three' => 3, 'four' => 4, 'five' => 5, 'six' => 6);
+            $weeks   = array('one', 'one', 'two', 'two', 'three', 'three', 'four', 'four', 'five', 'five', 'six', 'six', 'six');
+            $numbers = array('zero' => 0, 'one' => 1, 'two' => 2, 'three' => 3, 'four' => 4, 'five' => 5, 'six' => 6, 'six' => 6);
             
             $season['label'] = 'Cycle';
             $season['value'] = isset($weeks[$week]) ? $weeks[$week] : 'six';
@@ -482,10 +503,11 @@
         $this->season_dates = $dates;
         
         if ( isset($dates['new_player_cut-off']) && !empty($dates['new_player_cut-off']) ) {
-          $lock = DateTime::createFromFormat("m/d/Y", $dates['new_player_cut-off']);
           $date = new datetime('now');
+          $lock = DateTime::createFromFormat("m/d/Y", $dates['new_player_cut-off']);
+          $end  = DateTime::createFromFormat("m/d/Y", $this->season['playoffs_end']);
           
-          $this->season_dates['locked'] = $date->format('Ymd') >= $lock->format('Ymd');
+          $this->season_dates['locked'] = $date->format('Ymd') >= $lock->format('Ymd') && $date->format('Ymd') <= $end->format('Ymd');
         }
         else $this->season_dates['locked'] = FALSE;
         

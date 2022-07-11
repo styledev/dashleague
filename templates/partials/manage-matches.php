@@ -2,6 +2,8 @@
   wp_enqueue_script('api');
   wp_enqueue_script('api-manage');
   
+  global $wpdb;
+  
   $matches = array(
     'process'  => array(
       'where' => "gs.recorded IS NULL"
@@ -12,8 +14,18 @@
       // 'where' => "gs.recorded IS NULL AND gs.datetime >= '2021-08-30 00:00:00' AND gs.datetime <= '2021-09-13 23:59:59'" // 33
       // 'where' => "gs.recorded IS NULL AND gs.datetime >= '2021-09-13 00:00:00' AND gs.datetime <= '2021-09-26 23:59:59'" // 33
     ),
-    // 'recorded' => array('where' => 'gs.recorded IS NOT NULL'),
   );
+  
+  $cycle = FALSE;
+  //
+  // $cycles = array_column($wpdb->get_results("
+  //   SELECT cycle, start, end
+  //   FROM dl_tiers
+  //   WHERE season = 4
+  //   GROUP BY season, cycle
+  // "), null, 'cycle');
+  //
+  // $matches['process']['where'] = sprintf("gs.recorded IS NULL AND gs.datetime >= '%s' AND gs.datetime <= '%s'", $cycles[$cycle]->start, $cycles[$cycle]->end);
   
   $maps = array(
     'pay_canyon'           => 'Canyon',
