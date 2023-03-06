@@ -4,6 +4,7 @@
   rsort($cycles);
   
   $maps = array(
+    'ctf_coast'            => 'Coast',
     'pay_canyon'           => 'Canyon',
     'Payload_Blue_Art'     => 'Canyon',
     'pay_launchpad'        => 'Launchpad',

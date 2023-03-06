@@ -8,6 +8,7 @@
 <style>
   .content{padding-bottom:2em;}
   .tml-button[type="button"]{display:none;}
+  .team{margin-bottom:1em;}
 </style>
 <div class="content">
   <div class="">
@@ -52,6 +53,10 @@
   </div>
   <?php
     global $post;
+    
+    if ( !$user->profile ) {
+      echo '<br><div class="notice notice--red center-text"><small>Your account is not linked to your Player profile. Please DM Styledev with your Discord Name w/Number so he can link you account. If your account isnot linked to your Player profile you will not be able to edit the name that shows on your Player page.</small></div>';
+    }
     
     the_content();
     

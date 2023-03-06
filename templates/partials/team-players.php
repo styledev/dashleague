@@ -1,6 +1,9 @@
 <?php
   global $captains;
-  $captains = array_column(get_field('captains'), 'ID');
+  
+  if ( $captains = get_field('captains') ) {
+    $captains = array_column(get_field('captains'), 'ID');
+  }
 ?>
 <div class="grid__item team team--full">
   <div class="team__logo">
@@ -13,7 +16,12 @@
   </div>
   <div class="team__players">
     <ul>
-      <?php pxlACF::loop('team-player', 'players') ?>
+      <?php
+        if ( $players = get_field('players') ) pxlACF::loop('team-player', 'players');
+        else echo '
+          <li class="team__player">(blank issue)</li>
+        ';
+      ?>
     </ul>
   </div>
 </div>

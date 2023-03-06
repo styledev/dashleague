@@ -18,6 +18,10 @@ a.stat__heading:hover{color:var(--red);}
 
 .standings .stat{flex:1 0 auto;}
 .standings .stat .stat_player__name{pointer-events:all;}
+.standings .stat__list .stat_player a{
+  display:grid;
+  grid-template-columns: 33% 33% 33%;
+}
 
 .links{display:flex;justify-content:center;margin:1em 0 ;}
 

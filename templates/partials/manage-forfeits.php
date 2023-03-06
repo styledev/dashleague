@@ -12,8 +12,24 @@
     'season'         => 'current',
   )), 'post_title', 'ID');
   
-  $matchIDs               = $wpdb->get_col("SELECT matchID, count(matchID) as maps FROM dl_game_stats WHERE recorded IS NULL GROUP BY matchID HAVING maps < 2");
-  $adjustments_game_stats = $wpdb->get_results("SELECT * FROM dl_game_stats WHERE game_id IN ('forfeit', 'double-forfeit', 'map-forfeit') ORDER BY datetime DESC");
+  $matchIDs = $wpdb->get_col("
+    SELECT matchID, count(matchID) as maps, group_concat(game_id) as game_ids,
+    SUM(CASE
+      WHEN game_id LIKE 'map-forfeit' THEN 1
+      ELSE 0
+    END) as forfeits
+    FROM dl_game_stats
+    WHERE recorded IS NULL
+    GROUP BY matchID
+    HAVING maps < 2 OR forfeits = 1
+  ");
+  
+  $adjustments_game_stats = $wpdb->get_results("
+    SELECT *
+    FROM dl_game_stats
+    WHERE game_id IN ('forfeit', 'double-forfeit', 'map-forfeit')
+    ORDER BY datetime DESC
+  ");
 ?>
 <style>
   select{width:100%;}

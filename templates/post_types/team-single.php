@@ -19,6 +19,7 @@
   arsort($matches);
   
   $maps = array(
+    'ctf_coast'            => 'Coast',
     'pay_canyon'           => 'Canyon',
     'Payload_Blue_Art'     => 'Canyon',
     'pay_launchpad'        => 'Launchpad',
@@ -34,6 +35,17 @@
   
   $stats = $pxl->stats->team($team_id);
   $logo  = pxl::image(array('w' => 100, 'h' => 100, 'return' => 'tag' ));
+  
+  $servers = get_field('ideal_servers');
+  
+  if ( !$servers ) {
+    $t = new dlTeam();
+    $t->servers();
+    
+    $servers = $t->ideal_servers;
+  }
+  
+  $servers = is_array($servers) ? implode('</span><span class="server">', $servers) : '';
 ?>
 <div class="content">
   <div class="bar wp-block-group alignfull">
@@ -49,26 +61,27 @@
                   <div class="bar__score">%s</div>
                   <div class="bar__tag">MMR</div>
                 </div>
+                <div class="bar__servers"><span class="server">%s</span></div>
               </div>',
-              $team, ($stats ? $stats->mmr : 0)
+              $team, ($stats ? $stats->mmr : 0), $servers
             );
           ?>
         </div>
         <div class="bar__pos bar__pos--right">
           <div class="bar__pill bar__pill--standing">
-            <span class="bar__icon"><i class="fas fa-trophy"></i></span>
+            <span class="bar__icon"><i class="fa-solid fa-trophy"></i></span>
             <?php printf('<span>%s &nbsp;&dash;&nbsp; %s</span>', ($stats ? $stats->won : 0), ($stats ? $stats->lost : 0)); ?>
           </div>
           <div class="bar__pill bar__pill--kd">
-            <span class="bar__icon"><i class="fas fa-crosshairs"></i></span>
+            <span class="bar__icon"><i class="fa-solid fa-crosshairs"></i></span>
             <span><?php echo ($stats ? $stats->kd : 0); ?></span>
           </div>
           <div class="bar__pill bar__pill--time">
-            <span class="bar__icon"><i class="fas fa-clock"></i></span>
+            <span class="bar__icon"><i class="fa-solid fa-clock"></i></span>
             <span><?php echo ($stats ? $stats->time_played : 0); ?></span>
           </div>
           <div class="bar__pill bar__pill--players">
-            <span class="bar__icon"><i class="fas fa-vr-cardboard"></i></span>
+            <span class="bar__icon"><i class="fa-solid fa-vr-cardboard"></i></span>
             <?php
               printf('
                 <span>%s</span>
@@ -103,8 +116,8 @@
             ?>
           </div>
         </div>
-        <div class="swiper-btn swiper-btn--prev"><i class="fas fa-chevron-left fa-2x"></i></div>
-        <div class="swiper-btn swiper-btn--next"><i class="fas fa-chevron-right fa-2x"></i></div>
+        <div class="swiper-btn swiper-btn--prev"><i class="fa-solid fa-chevron-left fa-2x"></i></div>
+        <div class="swiper-btn swiper-btn--next"><i class="fa-solid fa-chevron-right fa-2x"></i></div>
       </div>
     </div>
   </div>

@@ -57,7 +57,7 @@
           'args'      => array(
             array(
               'methods'             => WP_REST_Server::EDITABLE,
-              'callback'            => array($this, 'tool_tiers'),
+              'callback'            => array($this, 'tool_tiers_make'),
               'permission_callback' => array($this, 'api_authenticate_admin')
             ),
           ),
@@ -92,10 +92,11 @@
           'fields'         => 'ids'
         )));
         
+        // TODO fix 1000
         $sql = $wpdb->prepare("
-          SELECT r1.name, sum(r1.rank_gain) +1000 as mmr, count(r1.matches) as matches, sum(r1.wins) as wins, count(r1.matches) - sum(r1.wins) as losses
+          SELECT r1.name, sum(r1.mmr) +1000 as mmr, count(r1.matches) as matches, sum(r1.wins) as wins, count(r1.matches) - sum(r1.wins) as losses
           FROM (
-            SELECT t1.name, sum(t1.rank_gain) as rank_gain, count(DISTINCT t1.matchID) as matches, t2.wins
+            SELECT t1.name, sum(t1.mmr) as mmr, count(DISTINCT t1.matchID) as matches, t2.wins
             FROM dl_teams AS t1
             LEFT JOIN (
               SELECT team_id, name, matchID,
@@ -214,7 +215,14 @@
         $params = array_merge($data, $_GET);
         
         $items  = array();
-        $cycle  = isset($params['cycle']) ? $params['cycle'] : 1;
+        
+        $cycles    = $wpdb->get_results($wpdb->prepare("SELECT cycle as num, start, end FROM dl_tiers WHERE season = %s GROUP BY cycle ORDER BY cycle ASC", $pxl->season['number']), ARRAY_A);
+        $cycle_num = isset($params['cycle']) ? $params['cycle'] : 1;
+        $cycle_key = $cycle_num - 1;
+        $cycle     = $cycles[$cycle_key] ?? FALSE;
+        
+        if ( ! $cycle ) return FALSE;
+        
         $season = isset($params['season']) ? $params['season'] : $pxl->season['number'];
         
         $teams = implode(',', get_posts(array(
@@ -227,45 +235,55 @@
         )));
         
         if ( !empty($teams) ) {
-          $select = array('t.name', 't.cycle', 't.tier');
+          $select = array('t.name', 'tr2.cycle', 'tr2.tier as `tier`', 'tr1.tier as tier_prev');
           $join   = array();
           $where  = '';
-          $order  = 't.name ASC';
+          $order  = $cycle['num'] == 1 ? 'tr1.name ASC' : 'sr DESC';
           
           if ( isset($params['tier']) ) {
             unset($select[2]);
-            $where .= $wpdb->prepare(' AND t.tier = %s', $params['tier']);
+            $where .= $wpdb->prepare(' AND tr2.tier = %s', $params['tier']);
           }
           
-          if ( $cycle != 1 ) {
-            $join[] = $wpdb->prepare('JOIN dl_teams AS tm ON tm.team_id = t.team_id AND tm.season = %d', $season);
-            
-            if ( isset($params['mmr']) ) {
-              $select[] = 'SUM(tm.rank_gain) + 1000 as mmr';
-              $order    = "mmr DESC, $order";
-            }
-            else {
-              $select[] = 'SUM(tm.rank_gain) as `rank`';
-              $order    = "`rank` DESC, $order";
-            }
-          }
-          else $select[] = '1000 as mmr';
+          // Gets starting tier
+          $join[] = $wpdb->prepare('JOIN dl_tiers AS tr1 ON t.team_id = tr1.team_id AND tr1.season = %d AND tr1.cycle = 1', $season);
           
-          if ( $cycle && $cycle != 1 ) {
-            $where .= $wpdb->prepare(' AND t.cycle = %d AND tm.datetime <= t.end', $params['cycle']);
+          if ( $cycle['num'] == 1 ) {
+            $select[] = '1000 as sr';
+            $select[] = "
+              CASE
+                WHEN tr1.tier = 'dasher' THEN 1200
+                WHEN tr1.tier = 'sprinter' THEN 1100
+                ELSE 1000
+              END as mmr
+            ";
+            $order = 'tr1.name ASC';
           }
+          else {
+            $select[] = 'SUM(t.rank_gain) + 1000 as sr';
+            $select[] = "
+              CASE
+                WHEN tr1.tier = 'dasher' THEN SUM(t.mmr) + 1200
+                WHEN tr1.tier = 'sprinter' THEN SUM(t.mmr) + 1100
+                ELSE SUM(t.mmr) + 1000
+              END as mmr";
+            $order = 'sr DESC';
+            $where .= $wpdb->prepare(' AND t.datetime <= %s', $cycle['start']);
+          }
+          
+          $join[] = $wpdb->prepare('JOIN dl_tiers AS tr2 ON t.team_id = tr2.team_id AND tr2.season = %d AND tr2.cycle = %d', $season, $cycle['num']);
           
           $count         = count($select);
           $select_string = implode(', ', $select);
-          $join_string   = implode(' ', $join);
+          $join_string   = implode("\n", $join);
           
           $sql = $wpdb->prepare("
             SELECT {$select_string}
-            FROM dl_tiers AS t
+            FROM dl_teams AS t
             {$join_string}
             WHERE t.season = %d AND t.team_id IN ({$teams}){$where}
-            GROUP BY t.name, t.cycle, t.tier
-            ORDER BY t.cycle ASC, t.tier ASC, {$order}
+            GROUP BY tr1.name, tr1.cycle, tr1.tier
+            ORDER BY tr2.tier ASC, {$order}
           ", $season);
           
           $_items = $wpdb->get_results($sql, ARRAY_A);
@@ -281,17 +299,17 @@
                 $items[$key][] = $item->name;
               }
             }
-            else if ( in_array('SUM(tm.rank_gain) as mmr', $select) ) {
-              $items = array();
-              
-              foreach ($_items as $item) {
-                $tier = $item['tier'];
-                
-                if ( !isset($items[$tier]) ) $items[$tier] = array();
-                
-                $items[$tier][] = $item;
-              }
-            }
+            // else if ( in_array('SUM(t.rank_gain) + 1000 as sr', $select) ) {
+            //   $items = array();
+            //
+            //   foreach ($_items as $item) {
+            //     $tier = $item['tier'];
+            //
+            //     if ( !isset($items[$tier]) ) $items[$tier] = array();
+            //
+            //     $items[$tier][] = $item;
+            //   }
+            // }
             else {
               $items = array();
               
@@ -305,7 +323,8 @@
                 if ( isset($params['mmr']) ) {
                   $items[$cycle][$tier][] = array(
                     'name' => $item['name'],
-                    'mmr' => $item['mmr']
+                    'mmr' => $item['mmr'],
+                    'sr' => $item['sr']
                   );
                 }
                 else $items[$cycle][$tier][] = $item['name'];
@@ -348,63 +367,126 @@
       }
       
     /* Tools */
-      public function tool_tiers( $data = array() ) {
+      public function tool_cycles() {
+        global $pxl, $wpdb;
+        
+        $cycles = $wpdb->get_results($wpdb->prepare("SELECT cycle as num, start, end FROM dl_tiers WHERE season = %d GROUP BY cycle ORDER BY cycle ASC", $pxl->season['number']), ARRAY_A);
+        
+        if ( empty($cycles) ) {
+          $cycle_1_end = DateTime::createFromFormat('m/d/Y H:i:s', "{$pxl->season['regular_start']} 23:59:59");
+          $cycle_1_end->modify('+14 day');
+          $cycles = [['num' => 0, 'end' => $cycle_1_end->format('Y-m-d H:i:s')]];
+        }
+        
+        return $cycles;
+      }
+      public function tool_tiers( $cycle, $current ) {
+        global $pxl, $wpdb;
+        
+        $cycle_end = DateTime::createFromFormat('Y-m-d H:i:s', $cycle['end']);
+        $cycle_end->add(new DateInterval('P1D'));
+        
+        $teams = get_posts(array(
+          'order'          => 'ASC',
+          'orderby'        => 'post_title',
+          'posts_per_page' => -1,
+          'post_type'      => 'team',
+          'season'         => 'current',
+        ));
+        
+        $teams = !empty($teams) ? array_column($teams, 'post_title', 'ID') : FALSE;
+        $teams_ids = $teams ? implode(', ', array_keys($teams)) : [];
+        
+        $breakdown = [
+          'dasher'   => count($current['dasher']),
+          'sprinter' => count($current['sprinter']),
+          'walker'   => count($current['sprinter']),
+        ];
+        
+        $teams_sql = $wpdb->prepare(
+          'SELECT tm.name, tm.team_id,
+            CASE 
+              WHEN tr.tier = "dasher" THEN sum(tm.mmr) + 1200
+              WHEN tr.tier = "sprinter" THEN sum(tm.mmr) + 1100
+              ELSE sum(tm.mmr) + 1000
+            END as mmr,
+            sum(tm.rank_gain) + 1000 as sr
+           FROM dl_teams AS tm
+           JOIN dl_tiers AS tr ON tm.team_id = tr.team_id AND tr.season = %1$d AND tr.cycle = 1
+           WHERE tm.season = %1$d AND tm.datetime <= "%2$s" AND tm.team_id IN ('.$teams_ids.')
+           GROUP BY tm.name
+           ORDER BY mmr DESC
+          ',
+          $pxl->season['number'],
+          $cycle['end'],
+          $cycle_end->format('Y-m-d H:i:s')
+        );
+        
+        $teams = $wpdb->get_results($teams_sql, ARRAY_A);
+        
+        $tiers = [];
+        if ( !empty($teams) ) {
+          
+          $dasher = array_slice($teams, 0, $breakdown['dasher']);
+          usort($dasher, fn($a, $b) => $b['sr'] <=> $a['sr']);
+          $tiers[] = $dasher;
+          
+          $sprinter = array_slice($teams, $breakdown['dasher'], $breakdown['sprinter']);
+          usort($sprinter, fn($a, $b) => $b['sr'] <=> $a['sr']);
+          $tiers[] = $sprinter;
+          
+          $walker = array_slice($teams, $breakdown['dasher']+$breakdown['sprinter'], $breakdown['walker']);
+          usort($walker, fn($a, $b) => $b['sr'] <=> $a['sr']);
+          $tiers[] = $walker;
+        }
+        
+        return $tiers;
+      }
+      public function tool_tiers_make( $data = array() ) {
         global $pxl, $wpdb;
         
         $response = array('status' => 'success');
         
         $dates = array(
           'start' => "{$_POST['dateStart']} 00:00:00",
-          'end'   => "{$_POST['dateEnd']} 11:59:59",
+          'end'   => "{$_POST['dateEnd']} 23:59:59",
         );
         
-        $pxl->season_dates();
-        
-        $teams = get_posts(array(
-          'fields'         => 'ids',
-          'posts_per_page' => -1,
-          'post_type'      => 'team',
-          'season'         => 'current',
-        ));
-        
-        if ( !empty($teams) ) $teams = implode(', ', $teams);
-        
-        $cycles = $wpdb->get_results($wpdb->prepare("SELECT cycle, start, end FROM dl_tiers WHERE season = 4 GROUP BY cycle ORDER BY cycle ASC", $pxl->season['number']));
-        $cycle  = array_pop($cycles);
-        
-        $cylce_teams   = $wpdb->prepare("SELECT name, team_id, sum(rank_gain) + 1000 as mmr FROM dl_teams WHERE season = %d AND datetime <= '%s' AND team_id IN ({$teams}) GROUP BY name ORDER BY mmr DESC", $pxl->season['number'], $cycle->end);
-        $cycle_results = $wpdb->get_results($cylce_teams, ARRAY_A);
-        $tiers = array_chunk($cycle_results, 11);
-        
-        if ( count($tiers[2]) < count($tiers[1]) ) {
-          $diff   = ROUND((count($tiers[1]) - count($tiers[2])) / 2, 0);
-          $offset = count($tiers[1]) - $diff;
-          $move   = array_splice($tiers[1], $offset, $diff);
+        if ( isset($_POST['tiers']) ) {
+          $tiers = $_POST['tiers'];
           
-          $tiers[2] = array_merge($move, $tiers[2]);
+          $cycles = [[ 'num' => 0 ]];
+          $cycle  = array_pop($cycles);
         }
-        
-        if ( count($tiers[1]) < count($tiers[0]) ) {
-          $diff   = ROUND((count($tiers[0]) - count($tiers[1])) / 2, 0);
-          $offset = count($tiers[0]) - $diff;
-          $move   = array_splice($tiers[0], $offset, $diff);
+        else {
+          $pxl->season_dates();
           
-          $tiers[1] = array_merge($move, $tiers[1]);
+          $cycles  = $pxl->api->tool_cycles();
+          $cycle   = $cycles[array_key_last($cycles)];
+          $current = $pxl->api->data_tiers(array('cycle' => $cycle['num'], 'mmr' => TRUE));
+          $tiers   = $pxl->api->tool_tiers($cycle, $current);
         }
         
         foreach ($tiers as $tier => $teams) {
           switch ($tier) {
-            case 0: $tier = 'dasher'; break;
-            case 1: $tier = 'sprinter'; break;
+            case 0: $tier  = 'dasher'; break;
+            case 1: $tier  = 'sprinter'; break;
             default: $tier = 'walker'; break;
           }
           
           foreach ($teams as $team) {
-            unset($team['mmr']);
+            if ( is_array($team) ) {
+              unset($team['mmr']);
+              unset($team['sr']);
+            }
+            else {
+              $team = explode('|', $team);
+              $team = ['team_id' => $team[1], 'name' => $team[0]];
+            }
             
             $data = array_merge($team, $dates, array(
               'tier'   => $tier,
-              'cycle'  => $cycle->cycle + 1,
+              'cycle'  => $cycle['num'] + 1,
               'season' => $pxl->season['number'],
             ));
             

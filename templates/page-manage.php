@@ -6,7 +6,7 @@
   .tml-button[type="button"]{display:none;}
 </style>
 <div class="content">
-  <div class="">
+  <div class="alignwide">
     <div class="page-heading">
       <h1 class="h2">Manage</h1>
     </div>

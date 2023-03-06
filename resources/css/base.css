@@ -197,6 +197,7 @@
     .navbar--center:before{height:40px;}
     .navbar__logo{margin-top:10px;}
     .wp-block-group.is-style-iframe-max iframe{height: calc(100vh - 112px);}
+    .navbar__menu span[data-area="New Season"]{display:block!important;}
   }
   
 /* WP Admin Bar Fix */

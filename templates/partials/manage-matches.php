@@ -28,6 +28,7 @@
   // $matches['process']['where'] = sprintf("gs.recorded IS NULL AND gs.datetime >= '%s' AND gs.datetime <= '%s'", $cycles[$cycle]->start, $cycles[$cycle]->end);
   
   $maps = array(
+    'ctf_coast'            => 'Coast',
     'pay_canyon'           => 'Canyon',
     'Payload_Blue_Art'     => 'Canyon',
     'pay_launchpad'        => 'Launchpad',

@@ -4,6 +4,7 @@
   rsort($cycles);
   
   $maps = array(
+    'ctf_coast'            => 'Coast',
     'pay_canyon'           => 'Canyon',
     'Payload_Blue_Art'     => 'Canyon',
     'pay_launchpad'        => 'Launchpad',
@@ -24,19 +25,20 @@
       <div class="matches__container alignwide">
         <br/>
         <?php
-          foreach ($cycles as $tier) {
-            if ( $tier['cycle'] == 7 ) continue;
+          foreach ($cycles as $cycle) {
+            if ( $cycle['cycle'] == 7 ) continue;
             
             $status = 'display';
             
             $query = array(
-              'where' => sprintf("gs.datetime >= '%s' AND gs.datetime <= '%s'", $tier['start'], $tier['end'])
+              'where' => sprintf("gs.datetime >= '%s' AND gs.datetime <= '%s'", $cycle['start'], $cycle['end'])
             );
             
             $matches = $pxl->stats->games($query);
             rsort($matches);
+            
             $count = count($matches);
-            $title = "Cycle {$tier['cycle']} – {$count} Matches";
+            $title = "Cycle {$cycle['cycle']} – {$count} Matches";
             
             printf('<div class="events__container event__container--matches-today alignwide" data-title="%s">', $title);
               foreach ($matches as $matchID => $match) {

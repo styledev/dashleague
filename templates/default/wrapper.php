@@ -7,7 +7,7 @@
         <?php
           if ( $social_networks = get_field('social_networks', 'options') ) {
             foreach ($social_networks as $key => $network) {
-              printf('<a href="%s" target="_blank"><i class="fab fa-%s"></i></a>', $network['link'], strtolower($network['icon']));
+              printf('<a href="%s" target="_blank"><i class="fa-brands fa-%s"></i></a>', $network['link'], strtolower($network['icon']));
             }
           }
         ?>
@@ -35,12 +35,12 @@
           <?php
             if ( $social_networks = get_field('social_networks', 'options') ) {
               foreach ($social_networks as $key => $network) {
-                printf('<li class="hidden-phone"><a href="%s" target="_blank"><i class="fab fa-%s"></i></a></li>', $network['link'], strtolower($network['icon']));
+                printf('<li class="hidden-phone"><a href="%s" target="_blank"><i class="fa-brands fa-%s"></i></a></li>', $network['link'], strtolower($network['icon']));
               }
             }
           ?>
           <li>
-            <a href="#" class="more"><span>Menu</span> <i class="fas fa-bars"></i></a></a>
+            <a href="#" class="more"><span>Menu</span> <i class="fa-solid fa-bars"></i></a></a>
           </li>
         </ul>
       </div>

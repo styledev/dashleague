@@ -1,6 +1,11 @@
 <?php
-  $global       = $pxl->stats->global();
-  $list_players = get_query_var('list_players');
+  $global        = $pxl->stats->global();
+  $season_number = $pxl->season['number'];
+  
+  if ( $season = get_query_var('list_season') ) {
+    $parts = explode('-', $season);
+    $season_number = $parts[1];
+  }
 ?>
 <style>
   .grid{justify-content: center;}
@@ -17,20 +22,34 @@
       <div class="bar__wrapper alignwide">
         <div class="bar__pos bar__pos--left">
           <div class="bar__info">
-            <div class="bar__title">Season<?php echo $pxl->season['number'] ?></div>
+            <div class="bar__title">
+              Teams
+            </div>
             <div class="bar__rp">
               <div class="bar__score"><?php echo $global['teams']; ?></div>
-              <div class="bar__tag bar__tag--expand">TEAMS</div>
+              &nbsp;
+              <div class="bar__tag bar__tag--expand">SEASON</div>
+              
+              <?php
+                for ($i=0; $i < $pxl->season['number'] ; $i++) {
+                  $s = $i+1;
+                  
+                  $link = $s == $pxl->season['number'] ? "/teams/" : sprintf("/teams/season-%s", $s);
+                  $selected = $s == $season_number ? ' bar__score--current' : '';
+                  
+                  printf('<a href="%s" class="bar__score%s">%s</a>', $link, $selected, $s);
+                }
+              ?>
             </div>
           </div>
         </div>
         <div class="bar__pos bar__pos--right">
-          <a href="/teams/" class="bar__pill bar__pill--time" title="Number of Teams">
-            <span class="bar__icon"><i class="fas fa-users"></i></span>
+          <a href="#" class="bar__pill bar__pill--time" title="Number of Teams">
+            <span class="bar__icon"><i class="fa-solid fa-flag"></i></span>
             <?php echo $global['teams']; ?>
           </a>
-          <a href="/teams/players/" class="bar__pill bar__pill--players" title="Number of Competitors">
-            <span class="bar__icon"><i class="fas fa-vr-cardboard"></i></span>
+          <a href="#" class="bar__pill bar__pill--players" title="Number of Competitors">
+            <span class="bar__icon"><i class="fa-solid fa-robot"></i></span>
             <?php echo $global['players']; ?>
           </a>
         </div>
@@ -38,8 +57,8 @@
     </div>
   </div>
   <div class="alignwide">
-    <div class="grid <?php echo $list_players ? 'grid--full' : 'grid--fifths'; ?>">
-      <?php pxl::loop($list_players ? 'team-players' : 'team'); ?>
+    <div class="grid grid--full">
+      <?php pxl::loop('team-players'); ?>
     </div>
   </div>
   <?php pxl::paginate(); ?>

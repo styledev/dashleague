@@ -16,6 +16,7 @@
                 "id": ""
             },
             "choices": {
+                "capture-the-flag": "Capture the Flag",
                 "control-point": "Control Point",
                 "deathmatch": "Deathmatch",
                 "domination": "Domination",
@@ -44,6 +45,7 @@
                 "id": ""
             },
             "choices": {
+                "ctf_coast": "ctf_coast",
                 "cp_stadium": "cp_stadium",
                 "ControlPoint_Stadium": "ControlPoint_Stadium",
                 "dom_waterway": "dom_waterway",
@@ -86,5 +88,5 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
-    "modified": 1650166042
+    "modified": 1666564340
 }

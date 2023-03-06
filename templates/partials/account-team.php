@@ -1,6 +1,92 @@
 <?php
+  global $team;
   $team = $user->team;
+  
   $max = 12;
+  
+  add_action('acf/render_field', function($field) {
+    if ( $field['label'] == 'Ideal Servers' ) {
+      global $team;
+      $team->timezones();
+      $team->servers();
+      
+      $team->table('timezones');
+      $team->table('servers');
+      
+      printf("<label><strong>Override Ideal Servers (max 2)</strong>%s</label>", (
+        $field['disabled'] ? ' <small style="color:red">Reach out to the DL Board to Change</small>' : ''
+      ));
+    }
+  }, 1);
+  
+  add_action('acf/render_field', function($field) {
+    if ( $field['label'] == 'Ideal Servers' ) {
+      foreach ($field['value'] as $value) {
+        printf('<input type="hidden" name="acf[field_63b3549593b67][]" value="%s">', $value);
+      }
+    }
+  }, 99);
+  
+  add_filter('acf/render_field', function($field) {
+    if ( $field['label'] == 'Players' ) {
+      global $team;
+      
+      $unregistered = array_column($team->roster['error'], 'name');
+      
+      echo '
+        <br>
+        <label><strong>Gamer IDs</strong></label>
+        <div class="team">
+        <table>
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Gamer ID on File?</th>
+            </tr>
+          </thead>
+          <tbody>
+      ';
+      
+      foreach ($unregistered as $player) {
+        printf(
+          '<tr>
+            <th align="left">%s</th>
+            <td align="right">
+              <span style="color:red"><small>Ineligible to play until they REGISTER</small></span>
+            </td>
+          </tr>',
+          $player
+        );
+      }
+      
+      foreach ($team->roster['players'] as $player) {
+        printf(
+          '<tr>
+            <th align="left">%s</th>
+            <td align="right">
+              %s
+              %s
+            </td>
+          </tr>',
+          $player['name'],
+          ($player['gamer_id'] ? sprintf('<strong>%s</strong>', $player['gamer_id']) : '<span style="color:red"><small>Ineligible to play until they set their GAMER ID</small></span>'),
+          ($player['gamer_id_alt'] ? sprintf('<br/><small style="color:blue"><strong>[ALT]</strong> %s</small>', $player['gamer_id_alt']) : '')
+        );
+      }
+      
+      echo "</tbody></table></div>";
+    }
+  }, 20);
+  
+  add_filter('acf/load_field', function( $field ) {
+    global $pxl;
+    
+    if ( $field['label'] == 'Ideal Servers' ) {
+      $field['disabled'] = $pxl->season_dates['locked_names'];
+    }
+    
+    return $field;
+  });
   
   if ( $user->active ) :
 ?>
@@ -13,8 +99,6 @@
       div[data-name="looking_for_players"] .acf-label label{margin:0;}
       
       .acf-field-61d1015c63267 .acf-input{min-width:80px;}
-      
-      /*.acf-field-6223b3298fdb7 .acf-label{display:none;}*/
       .acf-field-6223b3298fdb7 button{width:100%;}
       .acf-field-6223b3298fdb7 .acf-label:after{
         content:'Build your roster from the registered players below. Once they are rostered you can drag them to set their order or click on the remove icon.';
@@ -35,6 +119,8 @@
       .acf-relationship .filters{display:none;}
       .choices:before{background-color:var(--blue-light);color:#fff;content:'REGISTERED';display:block;padding:0.25em 0;text-align:center;}
       .values:before{background-color:var(--green);color:#fff;content:'ROSTERED';display:block;padding:0.25em 0;text-align:center;}
+      
+      .team th, .team td{padding:.25em;}
     </style>
     <div class="tml">
       <div class="team-card">
@@ -69,14 +155,12 @@
               'field_61d1015c63267', /* Looking for Players */
               'field_6223b3298fdb7', /* Instructions */
               'field_5fb1e370c7545', /* Players */
-            ),
+              'field_63b3549593b67', /* Ideal Servers */
+            )
           ));
           
-          // field = acf.getField('field_5fb1e370c7545');
-          // field.$list('values').sortable('disable');
-          
           echo '
-            <script>
+            <script type="text/javascript">
               function playersEdit() {
                 var field = acf.getField("field_5fb1e370c7545"),
                     status = field.$el.data("status");
@@ -92,9 +176,13 @@
                   dl.el.$buttonSubmit.innerText = "Toggle Sort";
                 }
               }
+              
+              acf.add_filter("select2_args", function( args, $select, settings ){
+                args.maximumSelectionLength = 2;
+                return args;
+              });
             </script>
           ';
-          
         else:
       ?>
           <div>

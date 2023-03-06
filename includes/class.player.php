@@ -16,7 +16,7 @@
       public function get_matches() {
         global $wpdb;
         
-        $this->matches = $wpdb->get_results($wpdb->prepare("SELECT * FROM dl_players WHERE player_id = %d AND season = 4", $this->id));
+        $this->matches = $wpdb->get_results($wpdb->prepare("SELECT * FROM dl_players WHERE player_id = %d ORDER BY datetime DESC", $this->id));
       }
       public function get_team() {
         $teams = get_posts(array(
@@ -41,6 +41,7 @@
           'kills'  => array_sum(array_column($this->matches, 'kills')),
           'deaths' => array_sum(array_column($this->matches, 'deaths')),
           'score'  => array_sum(array_column($this->matches, 'score')),
+          'wins'   => array_sum(array_column($this->matches, 'outcome')),
           'time'   => 0,
         );
         

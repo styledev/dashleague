@@ -1,5 +1,4 @@
 (function($){
-    
   // Wraps youtube videos with a responsive container
     function embedContainer() {
       jQuery('iframe[src*="youtube"]').each(function() {

@@ -57,7 +57,7 @@
                     },
                     "display_format": "m\/d\/Y",
                     "return_format": "m\/d\/Y",
-                    "first_day": 1
+                    "first_day": 0
                 },
                 {
                     "key": "field_60748c27cac4c",
@@ -74,7 +74,7 @@
                     },
                     "display_format": "m\/d\/Y",
                     "return_format": "m\/d\/Y",
-                    "first_day": 1
+                    "first_day": 0
                 },
                 {
                     "key": "field_60748c32cac4d",
@@ -91,7 +91,7 @@
                     },
                     "display_format": "m\/d\/Y",
                     "return_format": "m\/d\/Y",
-                    "first_day": 1
+                    "first_day": 0
                 },
                 {
                     "key": "field_60748c40cac4e",
@@ -108,7 +108,7 @@
                     },
                     "display_format": "m\/d\/Y",
                     "return_format": "m\/d\/Y",
-                    "first_day": 1
+                    "first_day": 0
                 }
             ]
         },
@@ -426,5 +426,6 @@
     "hide_on_screen": "",
     "active": true,
     "description": "",
-    "modified": 1618251091
+    "show_in_rest": 0,
+    "modified": 1672161257
 }

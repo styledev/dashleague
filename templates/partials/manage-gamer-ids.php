@@ -8,10 +8,11 @@
     'order'          => 'ASC',
   )), 'ID', 'post_title'), CASE_LOWER);
   
+  $query = [];
+  
   $cycles = $pxl->stats->cycles();
-  $query = array(
-    'where' => sprintf("gs.datetime >= '%s'", $cycles[0]['start'])
-  );
+  if ( !empty($cycles) ) $query['where'] = sprintf("gs.datetime >= '%s'", $cycles[0]['start']);
+  
   $matches    = $pxl->stats->games($query);
   $player_ids = array();
   
@@ -35,7 +36,8 @@
           $player_ids[$player->name]['ids'][] = $player->id;
           $player_ids[$player->name]['ids'] = array_unique($player_ids[$player->name]['ids']);
           
-          $player_ids[$player->name]['matches'][] = $match['games'][0]['matchID'];
+          $games = array_values($match['games']);
+          $player_ids[$player->name]['matches'][] = $games[0]['matchID'];
           $player_ids[$player->name]['matches'] = array_unique($player_ids[$player->name]['matches']);
         }
       }
@@ -94,7 +96,7 @@
                   update_field('gamer_ids', $player_gamer_ids, $player_id);
                   $status = 'Saved';
                 }
-                else $status = sprintf('No Match <button class="btn btn--small btn--ghost" data-data=\'%s\'>Change</button>', json_encode($player));
+                else $status = sprintf('No Match <button class="btn btn--small btn--ghost" data-data=\'%s\'>Change</button>', json_encode($player, JSON_HEX_APOS));
               }
               
               printf('

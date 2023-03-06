@@ -1,4 +1,4 @@
-<?php /* Template Name: Stats Manage */
+<?php /* Template Name: Stats Add Map */
   wp_enqueue_script('api');
   wp_enqueue_script('imask.min');
   wp_enqueue_script('api-form-stats');
@@ -30,21 +30,32 @@
   $team_select = '';
   
   global $wpdb;
-  $rank_base = 1000;
-  $players = array_column($wpdb->get_results("SELECT player_id, SUM(rank_gain) as `rank` FROM dl_players GROUP BY player_id"), 'rank', 'player_id');
+  // $rank_base = 1000;
+  // $players = array_column($wpdb->get_results("SELECT player_id, SUM(rank_gain) as `rank` FROM dl_players GROUP BY player_id"), 'rank', 'player_id');
+  
+  $players = array_column(get_posts([
+    'post_type'      => 'player',
+    'posts_per_page' => -1,
+    'season'         => 'current',
+  ]), 'post_title', 'ID');
   
   foreach ($teams as $post_id => $name) {
     $team_select .= sprintf('<option value="%s">%s</option>', $post_id, $name);
     
     if ( $team_players = get_field('players', $post_id) ) {
       foreach ($team_players as $player) {
-        if ( isset($players[$player->ID]) && is_array($players[$player->ID]) ) continue;
+        // if ( isset($players[$player->ID]) && is_array($players[$player->ID]) ) continue;
         
-        $rank = isset($players[$player->ID]) ? ($rank_base + $players[$player->ID]) : $rank_base;
+        // $rank = isset($players[$player->ID]) ? ($rank_base + $players[$player->ID]) : $rank_base;
+        
+        // $players[$player->ID] = array(
+        //   'name' => $player->post_title,
+        //   'rank' => $rank ?: 1000,
+        //   'team' => $name,
+        // );
         
         $players[$player->ID] = array(
           'name' => $player->post_title,
-          'rank' => $rank ?: 1000,
           'team' => $name,
         );
       }
@@ -91,13 +102,23 @@
   .choices__heading{text-align:center;}
   .choices__inner, .input{text-align:center;}
   .choices[data-type*="select-one"] select.choices__input{bottom:0;display:block !important;left:0;opacity:0;pointer-events:none;position:absolute;}
+  
+  @media (min-width: 640px) {
+    .choices__list--dropdown .choices__item--selectable, .choices__list[aria-expanded] .choices__item--selectable{
+      padding-right:10px!important;
+    }
+  }
+  .choices__list--dropdown .choices__item--selectable::after, .choices__list[aria-expanded] .choices__item--selectable::after{
+    content:'';
+  }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
-<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="<?php echo RES ?>/js/choices.js"></script>
+
 <div class="content">
   <div class="alignwide">
     <h2>Enter Match Outcome</h2>
-    <form class="lp-form" method="POST" data-init="stats" data-endpoint="stats/match" data-callback="stats_finish">
+    <form class="lp-form" method="PUT" data-init="stats" data-endpoint="stats/match" data-callback="stats_finish">
       <div class="fields">
         <div class="fields__group fields__group--thirds">
           <div class="fields__field fields__field--split fields__field--widechoices">
@@ -152,14 +173,12 @@
       <div class="teams">
         <?php for ($team_id = 0; $team_id < 2; $team_id++) include(PARTIAL . 'stats-form.php'); ?>
       </div>
-      <div class="buttons">
-        <button type="button" class="add">Add Map Data</button>
-      </div>
       
       <ol class="match-data"></ol>
       
       <div class="buttons">
-        <button type="button" class="btn submit">Submit Match Data</button>
+        <div class="tml alignwide"><div class="tml-alerts"><ul class="tml-messages"></ul></div></div>
+        <button type="button" class="btn submit">Submit Map Data</button>
         <button type="submit" class="btn errors hide">Errors</button>
       </div>
     </form>
@@ -167,13 +186,13 @@
 </div>
 
 <script>
-  var dl;
+  var dl,
+      players = Object.entries(JSON.parse('<?php echo addslashes(json_encode($players)); ?>'));
   
   window.addEventListener('DOMContentLoaded', (event) => {
-    var players = Object.entries(JSON.parse('<?php echo addslashes(json_encode($players)); ?>')),
-        masks   = document.querySelectorAll('input[mask]');
-        
-    dl = new apiFormStats(players);
+    var masks = document.querySelectorAll('input[mask]');
+    
+    dl = new apiFormStats();
     
     masks.forEach((masking) => {
       IMask(

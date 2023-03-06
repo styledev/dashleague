@@ -2,16 +2,23 @@
 /* exported dlAPI */
 
 class apiFormStats extends dlAPI {
-  constructor( players ) {
-    super();
-    this.players = players;
+  error( data ) {
+    if ( data.error ) {
+      var errors = typeof data.error == 'string' ? data.error : data.error.join(', ');
+      
+      if ( this.el.$error ) this.el.$error.innerText = errors;
+      else this.el.$messages.innerHTML = '<li class="tml-error">'+data.error+'</li>';
+      
+      this.el.$form.classList.remove('form--sending');
+      this.el.buttonSubmit.classList.remove('button--sending');
+    }
   }
   stats() {
-    this.data = new FormData();
-    this.maps = 0;
+    this.data = {};
+    // this.maps = 0;
+    this.players = players;
     
     this.el = Object.assign({
-      buttonAdd: document.querySelector('button.add'),
       buttonErrors: document.querySelector('button.errors'),
       buttonSubmit: document.querySelector('button.submit'),
       map: document.querySelector('select.map'),
@@ -65,50 +72,42 @@ class apiFormStats extends dlAPI {
       });
     });
     
-    this.el.buttonAdd.addEventListener('click', () => {
-      var valid = this.el.$form.checkValidity();
-      
-      if ( valid ) this.stats_data();
-      else this.el.buttonErrors.click();
-    });
-    
     this.el.buttonSubmit.addEventListener('click', () => {
-      if ( this.maps >= 2 ) {
         this.el.$form.classList.add('form--sending');
         this.el.buttonSubmit.classList.add('button--sending');
         
+        this.stats_data();
+        
         this.query(this.el.$form.dataset.endpoint, this.data, this.el.$form.getAttribute('method'), this.el.$form.dataset.callback);
-      }
-      else alert("You need to enter in at least two maps.");
     });
+  }
+  deepSet(obj, path, value) {
+      if (Object(obj) !== obj) return obj; // When obj is not an object
+      // If not yet an array, get the keys from the string-path
+      if (!Array.isArray(path)) path = path.toString().match(/[^.[\]]+/g) || []; 
+      path.slice(0,-1).reduce((a, c, i) => // Iterate all of them except the last one
+           Object(a[c]) === a[c] // Does the key exist and is its value an object?
+               // Yes: then follow that path
+               ? a[c] 
+               // No: create the key. Is the next key a potential array-index?
+               : a[c] = Math.abs(path[i+1])>>0 === +path[i+1] 
+                     ? [] // Yes: assign a new array object
+                     : {}, // No: assign a new plain object
+           obj)[path[path.length-1]] = value; // Finally assign the value to the last key
+      return obj; // Return the top-level object to allow chaining
   }
   stats_data() {
     var formData = new FormData(this.el.$form),
-        data     = JSON.stringify(Object.fromEntries(formData)),
-        mode     = JSON.parse(this.el.map.selectedOptions[0].dataset.customProperties).mode;
+        data     = {};
         
-    for (var pair of formData.entries()) {
-      if ( pair[1] === '' ) continue;
-      
-      var path  = pair[0].match(/[^\[\]]+/g).filter(Boolean),
-          area  = path.shift(),
-          field = pair[0].replace(area, mode+'['+area+']');
-          
-      this.data.append(field, pair[1]);
-    }
+    for (const [path, value] of formData) this.deepSet(data, path, value);
     
-    var el = document.createElement('li');
-    el.innerHTML = JSON.stringify(data);
-    
-    this.el.matchData.append(el);
-    
-    this.maps++;
-    
-    this.stats_reset({action: 'next'});
+    this.data = data;
   }
   stats_players() {
     this.players.forEach((c) => {
-      var value = c[0] +'|'+ c[1].rank;
+      var value = c[0];// +'|'+ c[1].rank;
+      
       this.choices_data.players.push({'value': value, 'label': c[1].name, customProperties: {
         team: c[1].team
       }});
@@ -129,7 +128,10 @@ class apiFormStats extends dlAPI {
     });
   }
   stats_finish() {
-    window.location = '/stats/match/'
+    this.el.$form.classList.remove('form--sending');
+    this.el.buttonSubmit.classList.remove('button--sending');
+    
+    window.location = '/stats-add-map/';
   }
   stats_outcome() {
     this.el.outcome.forEach((el) => {
@@ -158,26 +160,21 @@ class apiFormStats extends dlAPI {
       });
     });
   }
-  stats_reset( data ) {
+  stats_reset() {
     var teams = [];
+    
     teams.push(this.el.teams[0].selectedOptions[0].value);
     teams.push(this.el.teams[1].selectedOptions[0].value);
     
     this.el.$form.reset();
     
-    if ( data.action == 'next' ) {
-      for (var i = 0; i < 2; i++) {
-        this.choices_team[i].setChoiceByValue(teams[i]);
-        
-        var choice = { choice: this.choices_team[i].getValue() },
-            event  = new CustomEvent('choice', {detail: choice } );
-            
-        this.el.teams[i].dispatchEvent(event);
-      }
-    }
-    else {
-      this.data = new FormData();
-      this.el.matchData.innerHTML = '';
+    for (var i = 0; i < 2; i++) {
+      this.choices_team[i].setChoiceByValue(teams[i]);
+      
+      var choice = { choice: this.choices_team[i].getValue() },
+          event  = new CustomEvent('choice', {detail: choice } );
+          
+      this.el.teams[i].dispatchEvent(event);
     }
   }
   stats_team() {
@@ -206,6 +203,27 @@ class apiFormStats extends dlAPI {
         });
       });
     });
+  }
+  query( endpoint, data, method, callback ) {
+    var url = this.api + '/' + endpoint, xhr = new XMLHttpRequest();
+    
+    xhr.open(method, url, true);
+    xhr.setRequestHeader('X-WP-Nonce', vars_api.nonce);
+    
+    xhr.addEventListener('readystatechange', () => {
+      if (xhr.readyState == 4 && xhr.status == 200) {
+        var results = JSON.parse(xhr.responseText);
+        
+        if ( this.el.$submit ) this.el.$submit.classList.remove('button--sending');
+        if ( this.el.$form ) this.el.$form.classList.remove('form--sending');
+        
+        if ( results === false ) this.error({error: 'Request failed.'});
+        else if ( results.error ) this.error(results);
+        else if ( callback ) this[callback](results);
+      }
+    });
+    
+    xhr.send(JSON.stringify(data));
   }
 }
 

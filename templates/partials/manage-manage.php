@@ -51,7 +51,7 @@
               
               $player = get_posts(array_merge($player_args, array(
                 'meta_key'   => 'discord_username',
-                'meta_value' => $user->display_name
+                'meta_value' => html_entity_decode($user->display_name)
               )));
               
               if ( !$player ) {

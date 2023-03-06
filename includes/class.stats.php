@@ -1,5 +1,6 @@
 <?php if ( !class_exists('dlStats') ) {
   class dlStats {
+    public $internal = FALSE;
     function __construct( &$api ) {
       $this->url       = 'https://backend-hyperdash.be/current/index.php';
       $this->user      = wp_get_current_user();
@@ -105,9 +106,7 @@
         
         $forfeit_type = $_POST['forfeit_type'];
         $matchID      = in_array($forfeit_type, array('match', 'double-forfeit')) ? "{$_POST['forfeit_date']}={$teams['forfeit']['team']->post_title}<>{$teams['opponent']['team']->post_title}" : $forfeit_type;
-        $datetime     = DateTime::createFromFormat("Ymd", $_POST['forfeit_date']);
-        
-        $datetime->setTimeZone(new DateTimeZone('America/Los_Angeles'));
+        $datetime     = DateTime::createFromFormat("Ymd H:i", "{$_POST['forfeit_date']} 23:59");
         
         switch ($forfeit_type) {
           case 'match':
@@ -247,13 +246,123 @@
               foreach ($match['games'] as $game) $data[] = $this->stats_to_data($matchID, $game, $match);
             }
             
-            $mmr->match($data);
+            $mmr_gain = $mmr->match('MMR', $data);
+            $mmr->match('SR', $data, $mmr_gain);
             
             $wpdb->query($wpdb->prepare("UPDATE dl_game_stats SET recorded = CURRENT_TIMESTAMP WHERE matchID = '%s'", $matchID));
           }
           else {
             fns::error('NO MATCH ID then get $mmr->match($_POST);');
             // $response['ranks'] = $mmr->match($_POST);
+          }
+        }
+        else if ( $_SERVER['REQUEST_METHOD'] == 'PUT' ) {
+          $data = (array)json_decode(file_get_contents('php://input'), TRUE);
+          
+          if ( !empty($data['info']['map_id']) ) {
+            $map    = get_post($data['info']['map_id']);
+            $map_hd = get_field('map_hd', $data['info']['map_id']);
+            $type   = get_field('mode', $data['info']['map_id']);
+            
+            if ( $type == 'control-point' ) $type = 'ControlPoint';
+            
+            $date = DateTime::createFromFormat("F j Y H:i", "{$data['info']['date']['month']} {$data['info']['date']['day']} {$data['info']['date']['year']} 12:00");
+            
+            $teams      = [];
+            $winner     = FALSE;
+            $round_data = [];
+            
+            foreach ($data['teams'] as $key => $team) {
+              $color = $key === 0 ? 'Red' : 'Blue';
+              if ( !$winner && $team['outcome'] ) $winner = $color;
+              
+              if ( $_team = get_post($team['team_id']) ) {
+                $players = array_values(array_filter($team['players']));
+              
+                $teams[$color] = [
+                  'name'    => $_team->post_title,
+                  'players' => []
+                ];
+                
+                switch ($type) {
+                  case 'ControlPoint':
+                  case 'domination':
+                    $teams[$color]['score'] = $team['score_points'];
+                    break;
+                  case 'payload':
+                    $teams[$color]['score'] = (int)$team['score_percentage'] * 100;
+                    $time = explode(':', $team['score_time']);
+                    
+                    $round_data[] = [
+                      'round_time' => ($time[0] * 60) + $time[1],
+                      'team'       => strtolower($_team->post_title)
+                    ];
+                    break;
+                  default:break;
+                }
+                
+                foreach ($players as $key => $player) {
+                  if ( empty($player['player_id']) ) continue;
+                  
+                  $_player = get_post($player['player_id']);
+                  
+                  $teams[$color]['players'][] = [
+                    'id'        => get_field('gamer_id', $player['player_id']),
+                    'name'      => $_player->post_title,
+                    'tag'       => $_team->post_title,
+                    'kills'     => $player['kills'],
+                    'deaths'    => $player['deaths'],
+                    'score'     => $player['score'],
+                  ];
+                }
+              }
+              else {
+                $response['status'] = 'error';
+                $response['error'] = 'Specify Teams';
+                return rest_ensure_response($response);
+              }
+            }
+            
+            global $wpdb;
+            
+            if ( isset($teams['Red']['score']) && isset($teams['Blue']['score']) ) {
+              $stats = [
+                'game_id'         => NULL,
+                'matchID'         => sprintf('%s=%s<>%s', $date->format('Ymd'), $teams['Red']['name'], $teams['Blue']['name']),
+                'datetime'        => $date->format('Y-m-d H:i'),
+                'approved'        => NULL,
+                'recorded'        => NULL,
+                'type'            => ucwords($type),
+                'map'             => $map_hd[0],
+                'time'            => sprintf("00:%s", $data['info']['time']),
+                'winner'          => $winner,
+                'red_score'       => $teams['Red']['score'],
+                'red_players'     => json_encode($teams['Red']['players'], JSON_UNESCAPED_UNICODE),
+                'blue_score'      => $teams['Blue']['score'],
+                'blue_players'    => json_encode($teams['Blue']['players'], JSON_UNESCAPED_UNICODE),
+                'dropped_players' => NULL,
+                'round_data'      => empty($round_data) ? NULL : json_encode($round_data, JSON_UNESCAPED_UNICODE),
+                'notes'           => 'Manually Added',
+              ];
+              
+              $result = $wpdb->insert('dl_game_stats', $stats);
+              
+              if ( !$result ) {
+                $response['status'] = 'error';
+                $response['error'] = 'Failed to Add';
+                return rest_ensure_response($response);
+              }
+            }
+            else {
+              $response['status'] = 'error';
+              $response['error'] = 'Missing Scores';
+              return rest_ensure_response($response);
+            }
+          }
+          else {
+            $response['status'] = 'error';
+            $response['error'] = 'Missing Map';
+            return rest_ensure_response($response);
           }
         }
         
@@ -305,12 +414,14 @@
       private function player_id( $player ) {
         global $wpdb;
         
-        return $wpdb->get_var($wpdb->prepare("
+        $sql = $wpdb->prepare("
           SELECT p.id
           FROM {$wpdb->prefix}postmeta AS pm
           JOIN {$wpdb->prefix}posts AS p ON p.id = pm.post_id
-          WHERE pm.meta_value = '%s' AND p.post_title = '%s'
-        ", $player['id'], $player['name']));
+          WHERE p.post_title = '%s' AND pm.meta_value = '%s'
+        ", $player['name'], $player['id']);
+        
+        return $wpdb->get_var($sql);
       }
       private function stats_to_data( $matchID, $game, $match ) {
         global $pxl, $wpdb;
@@ -389,8 +500,9 @@
       public function data_standings() {
         global $pxl, $wpdb;
         
+        $items  = array();
         $season = isset($_GET['season']) ? $_GET['season'] : $pxl->season['number'];
-        $teams = implode(',', get_posts(array(
+        $teams  = implode(',', get_posts(array(
           'post_type'      => 'team',
           'posts_per_page' => -1,
           'order'          => 'ASC',
@@ -399,32 +511,44 @@
           'fields'         => 'ids'
         )));
         
-        $sql = $wpdb->prepare("
-          SELECT r1.name, sum(r1.rank_gain) as mmr, count(r1.matches) as Matches, sum(r1.wins) as wins
-          FROM (
-            SELECT t1.name, sum(t1.rank_gain) as rank_gain, count(DISTINCT t1.matchID) as matches, t2.wins
-            FROM dl_teams AS t1
-            LEFT JOIN (
-              SELECT team_id, name, matchID,
-              CASE
-                WHEN sum(outcome) = 2 THEN 1
-                WHEN game_id = 'forfeit' THEN 1
-                ELSE 0
-              END as wins
-              FROM dl_teams
-              WHERE season = %d
-              GROUP BY team_id, matchID
+        if ( !empty($teams) ) {
+          $cycles = $wpdb->get_results($wpdb->prepare("SELECT cycle as num, start, end FROM dl_tiers WHERE season = %s GROUP BY cycle ORDER BY cycle ASC", $pxl->season['number']), ARRAY_A);
+          $start = $cycles[0];
+          
+          $sql = $wpdb->prepare("
+            SELECT r1.name, count(r1.matches) as Matches, sum(r1.wins) as wins,
+              CASE 
+                WHEN tr.tier = 'dasher' THEN sum(r1.mmr) + 1200
+                WHEN tr.tier = 'sprinter' THEN sum(r1.mmr) + 1100
+                ELSE sum(r1.mmr) + 1000
+              END as mmr,
+              sum(r1.sr) + 1000 as sr
+            FROM (
+              SELECT t1.name, t1.team_id, sum(t1.mmr) as mmr, sum(t1.rank_gain) as sr, count(DISTINCT t1.matchID) as matches, t2.wins
+              FROM dl_teams AS t1
+              LEFT JOIN (
+                SELECT team_id, name, matchID,
+                CASE
+                  WHEN sum(outcome) = 2 THEN 1
+                  WHEN game_id = 'forfeit' THEN 1
+                  ELSE 0
+                END as wins
+                FROM dl_teams
+                WHERE season = %d
+                GROUP BY team_id, matchID
+                ORDER BY name ASC
+              ) as t2 on t1.matchID = t2.matchID AND t2.team_id = t1.team_id
+              WHERE t2.team_id IN ({$teams})
+              GROUP BY t1.team_id, t1.matchID
               ORDER BY name ASC
-            ) as t2 on t1.matchID = t2.matchID AND t2.team_id = t1.team_id
-            WHERE t2.team_id IN ({$teams})
-            GROUP BY t1.team_id, t1.matchID
-            ORDER BY name ASC
-          ) as r1
-          GROUP BY r1.name
-          ORDER BY MMR DESC
-        ", $season);
-        
-        $items = $wpdb->get_results($sql);
+            ) as r1
+            JOIN dl_tiers AS tr ON r1.team_id = tr.team_id AND tr.start = %s AND tr.end = %s
+            GROUP BY r1.name
+            ORDER BY SR DESC, MMR DESC
+          ", $season, $start['start'], $start['end']);
+          
+          $items = $wpdb->get_results($sql);
+        }
         
         return $items;
       }
@@ -490,7 +614,7 @@
       }
       public function data_tiers( $data = array() ) {
         global $pxl, $wpdb;
-        
+        fns::put('contact styledev and tell him this link');die;
         $params = array_merge($data, $_GET);
         
         $season = isset($params['season']) ? $params['season'] : $pxl->season['number'];
@@ -514,13 +638,13 @@
         }
         
         if ( isset($params['mmr']) ) {
-          $select[] = 'SUM(tm.rank_gain) as mmr';
+          $select[] = 'SUM(tm.mmr) as mmr';
           $join[]   = $wpdb->prepare('JOIN dl_teams AS tm ON tm.team_id = t.team_id AND tm.season = %d', $season);
           $order    = "mmr DESC, $order";
         }
         else {
           $join[]   = $wpdb->prepare('JOIN dl_teams AS tm ON tm.team_id = t.team_id AND tm.season = %d', $season);
-          $order    = "SUM(tm.rank_gain) DESC, $order";
+          $order    = "SUM(tm.mmr) DESC, $order";
         }
         
         if ( isset($params['cycle']) ) {
@@ -554,7 +678,7 @@
               $items[$key][] = $item->name;
             }
           }
-          else if ( in_array('SUM(tm.rank_gain) as mmr', $select) ) {
+          else if ( in_array('SUM(tm.mmr) as mmr', $select) ) {
             $items = array();
             
             foreach ($_items as $item) {
@@ -614,9 +738,9 @@
           }
           
         // Need to strip player game ids before sending back to interface.
-          $stats['red_players']     = $this->players_remove_gamer_id($stats['red_players']);
-          $stats['blue_players']    = $this->players_remove_gamer_id($stats['blue_players']);
-          $stats['dropped_players'] = $this->players_remove_gamer_id($stats['dropped_players']);
+          $stats['red_players']     = $this->players_remove_gamer_id_alt($stats['red_players']);
+          $stats['blue_players']    = $this->players_remove_gamer_id_alt($stats['blue_players']);
+          $stats['dropped_players'] = $this->players_remove_gamer_id_alt($stats['dropped_players']);
           
         // Decode
           $stats['round_data'] = json_decode($stats['round_data']);
@@ -650,9 +774,9 @@
         }
         else {
           foreach ($match as $key => $m) {
-            $match[$key]['red_players']     = $this->players_remove_gamer_id($m['red_players']);
-            $match[$key]['blue_players']    = $this->players_remove_gamer_id($m['blue_players']);
-            $match[$key]['dropped_players'] = $this->players_remove_gamer_id($m['dropped_players']);
+            $match[$key]['red_players']     = $this->players_remove_gamer_id_alt($m['red_players']);
+            $match[$key]['blue_players']    = $this->players_remove_gamer_id_alt($m['blue_players']);
+            $match[$key]['dropped_players'] = $this->players_remove_gamer_id_alt($m['dropped_players']);
             $match[$key]['round_data']      = json_decode($m['round_data']);
           }
         }
@@ -672,7 +796,9 @@
           'headers' => array(
             'x-api-token' => HD_API_TOKEN,
             'x-api-auth'  => HD_ID . ':' . bin2hex(hash('sha256', HD_API_TOKEN . ".{$query}." . HD_SECRET, true)),
-          )
+          ),
+          'timeout'   => 30,
+          'sslverify' => FALSE
         ));
         
         if ( !is_wp_error($response) ) {
@@ -686,7 +812,7 @@
         }
         else return $response->get_error_message();
       }
-      private function players_remove_gamer_id( $players ) {
+      private function players_remove_gamer_id_alt( $players ) {
         if ( !$players ) return $players;
         
         $players = json_decode($players);
@@ -702,12 +828,18 @@
       public function games( $options = array() ) {
         $games_stats = $this->games_stats($options);
         
-        $matches = array();
+        $controlPoint = [];
+        $matches      = [];
+        $doubleCP     = [];
+        
+        $mapsPlayer = array_count_values(array_column($games_stats, 'matchID'));
         
         foreach ($games_stats as $game) {
           $matchID = $game['matchID'];
           $info    = explode('=', $matchID);
           $teams   = explode('<>', $info[1]);
+          
+          $this->internal = $teams[0] == $teams[1];
           
           $this->match_init($matchID, $game, $teams, $matches);
           $this->game_init($game, $teams);
@@ -727,14 +859,111 @@
             OR !$game['winner']
             OR ( $matches[$matchID]['teams'][$game['winner']]['score'] < 2 && !isset($matches[$matchID]['teams']['winner']) )
           ) {
+            if ( $mapsPlayer[$matchID] > 3 && $game['type'] == 'ControlPoint' ) {
+              if ( !isset($doubleCP[$matchID]) ) $doubleCP[$matchID] = [];
+              $doubleCP[$matchID][] = $game;
+              
+              if ( count($doubleCP[$matchID]) > 1 ) $game = $this->double_cp($doubleCP[$matchID]);
+              else continue;
+            }
+            
             if ( $game['winner'] ) $matches[$matchID]['teams'][$game['winner']]['score']++;
-            $matches[$matchID]['games'][] = $game;
+            
+            if ( empty($game['type']) ) $matches[$matchID]['games'][] = $game;
+            else $matches[$matchID]['games'][$game['game_id']] = $game;
             
             if ( $game['winner'] && $matches[$matchID]['teams'][$game['winner']]['score'] == 2 ) $matches[$matchID]['teams']['winner'] = $game['winner'];
           }
         }
         
         return $matches;
+      }
+      public function double_cp( $matches ) {
+        $match = $this->double_cp_match($matches[0]);
+        
+        $data = [
+          'kills' => [],
+          'score' => [],
+          'time'  => [],
+        ];
+        
+        foreach ($matches as $key => $m) {
+          $data['time'][$m['winner']] = $m['round_data'][0]->ROUND_TIME;
+          $match['time'] += $m['round_data'][0]->ROUND_TIME;
+          
+          foreach ($m['teams'] as $team_name => $team) {
+            if ( !isset($data['score'][$team_name]) ) $data['score'][$team_name] = 0;
+            $data['score'][$team_name] += array_sum(array_column($team['players'], 'score'));
+            
+            if ( !isset($data['kills'][$team_name]) ) $data['kills'][$team_name] = 0;
+            $data['kills'][$team_name] += array_sum(array_column($team['players'], 'kills'));
+            
+            if ( !isset($match['teams'][$team_name]['name']) ) $match['teams'][$team_name]['name']   = $team['name'];
+            if ( !isset($match['teams'][$team_name]['color']) ) $match['teams'][$team_name]['color'] = $team['color'];
+            if ( !isset($match['teams'][$team_name]['score']) ) $match['teams'][$team_name]['score'] = 0;
+            
+            $match['teams'][$team_name]['score'] += $team['score'];
+            
+            if ( !isset($match['teams'][$team_name]['players']) ) $match['teams'][$team_name]['players'] = array_column($team['players'], NULL, 'name');
+            else $this->double_cp_players($team['players'], $match['teams'][$team_name]['players']);
+          }
+        }
+        
+        $match['time'] = gmdate("H:i:s", $match['time']);
+        
+        $winner = [];
+        
+        foreach ($data as $type => $score) {
+          $teams = array_keys($score);
+          
+          if ( $type == 'time' ) {
+            if ( $score[$teams[0]] == $score[$teams[1]] ) $winner[$type] = FALSE;
+            else $winner[$type] = $score[$teams[0]] < $score[$teams[1]] ? $teams[0] : $teams[1];
+          }
+          else {
+            if ( $score[$teams[0]] == $score[$teams[1]] ) $winner[$type] = FALSE;
+            else $winner[$type] = $score[$teams[0]] > $score[$teams[1]] ? $teams[0] : $teams[1];
+          }
+        }
+        
+        $winner          = array_filter($winner);
+        $winner_by       = array_key_last($winner);
+        
+        $match['winner'] = $winner[$winner_by];
+        $match['notes']  = "Double CP decided by {$winner_by}: ";
+        
+        switch ($winner_by) {
+          case 'time':
+            $match['notes'] .= sprintf('<br>%s (in seconds)', str_replace(array('=', '&'), array(' = ', ' VS '), http_build_query($data[$winner_by])));
+            break;
+          default:
+            $match['notes'] .= sprintf('<br>%s', str_replace(array('=', '&'), array(' = ', ' VS '), http_build_query($data[$winner_by])));
+            break;
+        }
+        
+        return $match;
+      }
+      public function double_cp_match( $match ) {
+        // fns::put($match);
+        $new_match = $match;
+        $new_match['time']   = 0;
+        $new_match['winner'] = NULL;
+        $new_match['teams']  = array_fill_keys(array_keys($match['teams']), []);
+        
+        unset($new_match['dropped_players']);
+        unset($new_match['round_data']);
+        
+        return $new_match;
+      }
+      public function double_cp_players( $combine, &$players ) {
+        foreach ($combine as $key => $p) {
+          if ( isset($players[$p->name]) ) {
+            foreach ($p as $key => $value) {
+              if ( is_numeric($value) ) $players[$p->name]->$key = intval($players[$p->name]->$key) + $value;
+            }
+          }
+          else $players[$p->name] = $p;
+        }
       }
       public function games_stats( $options = array() ) {
         global $pxl, $wpdb;
@@ -766,8 +995,14 @@
         $game['dropped_players'] = !empty($game['dropped_players']) && strpos($game['dropped_players'], '"id"') ? json_decode($game['dropped_players']) : array();
         $game['round_data']      = !empty($game['round_data']) ? json_decode(strtoupper($game['round_data'])) : array();
         
-        $tags_red  = is_array($game['red_players']) ? current(array_intersect($teams, array_unique(array_column($game['red_players'], 'tag')))) : $game['red_players'];
-        $tags_blue = is_array($game['blue_players']) ? current(array_intersect($teams, array_unique(array_column($game['blue_players'], 'tag')))) : $game['blue_players'];
+        if ( $this->internal ) {
+          $tags_red  = "{$teams[0]}-1";
+          $tags_blue = "{$teams[1]}-2";
+        }
+        else {
+          $tags_red  = is_array($game['red_players']) ? current(array_intersect($teams, array_unique(array_column($game['red_players'], 'tag')))) : $game['red_players'];
+          $tags_blue = is_array($game['blue_players']) ? current(array_intersect($teams, array_unique(array_column($game['blue_players'], 'tag')))) : $game['blue_players'];
+        }
         
         $game['colors'] = array('red' => strtoupper($tags_red), 'blue' => strtoupper($tags_blue));
       }
@@ -787,6 +1022,11 @@
       private function game_round_time( &$game ) {
         if ( !empty($game['round_data']) ) {
           if ( isset($game['round_data'][0]->TEAM) ) {
+            if ( $this->internal ) {
+              $game['round_data'][0]->TEAM = "{$game['round_data'][0]->TEAM}-1";
+              $game['round_data'][1]->TEAM = "{$game['round_data'][1]->TEAM}-2";
+            }
+            
             $game['round_data'] = array_column($game['round_data'], 'ROUND_TIME', 'TEAM');
             arsort($game['round_data']);
             foreach ($game['round_data'] as $team => $time) $game['teams'][$team]['round_time'] = date('i:s', $time);
@@ -818,7 +1058,7 @@
       private function match_init( $matchID, $game, $teams, &$matches ) {
         if ( !isset($matches[$matchID]) ) {
           $datetime = DateTime::createFromFormat("Y-m-d H:i:s", "{$game['datetime']}");
-          $datetime->setTimeZone(new DateTimeZone('America/Los_Angeles'));
+          $datetime->setTimeZone(new DateTimeZone('America/New_York'));
           
           $match = array(
             'datetime' => $datetime,
@@ -827,11 +1067,14 @@
             'games'    => array(),
           );
           
-          foreach ($teams as $team) {
+          foreach ($teams as $key => $team) {
             $post = get_page_by_title($team, OBJECT, 'team');
             
+            $index = $key+1;
+            if ( $this->internal ) $team = "{$team}-{$index}";
+            
             $match['teams'][strtoupper($team)] = array(
-              'id'    => $post->ID,
+              'id'    => isset($post->ID) ? $post->ID : FALSE,
               'name'  => $team,
               'link'  => get_permalink($post),
               'logo'  => pxl::image($post, array( 'w' => 75, 'h' => 75, 'return' => 'tag' )),
@@ -861,26 +1104,38 @@
       public function global() {
         global $wpdb, $pxl;
         
-        $season = $pxl->season['number'];
+        if ( $list_season = get_query_var('list_season') ) {
+          $slug   = $list_season;
+          $parts  = explode('-', $list_season);
+          $season = $parts[1];
+        }
+        else {
+          $slug = 'current';
+          $season = $pxl->season['number'];
+        }
+        
+        $teams = sprintf("
+          SELECT count(distinct p.id)
+          FROM {$wpdb->prefix}posts as p
+          JOIN {$wpdb->prefix}term_relationships AS tr ON tr.object_id = p.id
+          JOIN {$wpdb->prefix}term_taxonomy AS tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+          JOIN {$wpdb->prefix}terms AS t ON t.term_id = tt.term_id
+          WHERE p.post_type = 'team' AND p.post_status = 'publish' AND t.slug = '%s'
+        ", $slug);
+        
+        $players = sprintf("
+          SELECT count(distinct p.id)
+          FROM {$wpdb->prefix}posts as p
+          JOIN {$wpdb->prefix}term_relationships AS tr ON tr.object_id = p.id
+          JOIN {$wpdb->prefix}term_taxonomy AS tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+          JOIN {$wpdb->prefix}terms AS t ON t.term_id = tt.term_id
+          WHERE p.post_type = 'player' AND p.post_status = 'publish' AND t.slug = '%s'
+        ", $slug);
         
         return array(
           'time'    => $wpdb->get_var("SELECT SEC_TO_TIME(SUM(TIME_TO_SEC( d.time ))) FROM dl_teams as d WHERE season = {$season}"),
-          'players' => $wpdb->get_var("
-            SELECT count(distinct p.id)
-            FROM {$wpdb->prefix}posts as p
-            JOIN {$wpdb->prefix}term_relationships AS tr ON tr.object_id = p.id
-            JOIN {$wpdb->prefix}term_taxonomy AS tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
-            JOIN {$wpdb->prefix}terms AS t ON t.term_id = tt.term_id
-            WHERE p.post_type = 'player' AND p.post_status = 'publish' AND t.slug = 'current'
-          "),
-          'teams' => $wpdb->get_var("
-            SELECT count(distinct p.id)
-            FROM {$wpdb->prefix}posts as p
-            JOIN {$wpdb->prefix}term_relationships AS tr ON tr.object_id = p.id
-            JOIN {$wpdb->prefix}term_taxonomy AS tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
-            JOIN {$wpdb->prefix}terms AS t ON t.term_id = tt.term_id
-            WHERE p.post_type = 'team' AND p.post_status = 'publish' AND t.slug = 'current'
-          "),
+          'players' => $wpdb->get_var($players),
+          'teams' => $wpdb->get_var($teams),
         );
       }
       public function stats( $season = FALSE, $override = array(), $table = 'dl_players' ) {
@@ -939,7 +1194,7 @@
             SELECT
             %1$s
             FROM %2$s as d
-            JOIN ( SELECT team_id, SUM(rank_gain) as mmr FROM dl_teams WHERE season = %4$d GROUP BY team_id ) AS opp ON d.opponent_id = opp.team_id
+            JOIN ( SELECT team_id, SUM(mmr) as mmr FROM dl_teams WHERE season = %4$d GROUP BY team_id ) AS opp ON d.opponent_id = opp.team_id
             JOIN ( SELECT player_id, GROUP_CONCAT(DISTINCT season) as `season_list`, COUNT(DISTINCT season) as `seasons` FROM dl_players GROUP BY player_id ) AS pl ON d.player_id = pl.player_id
             JOIN (
               SELECT m.player_id, GROUP_CONCAT(DISTINCT m.type, \':\', m.maps, \':\', m.time, \':\', m.score, \':\', m.score_min) AS modes
@@ -969,7 +1224,7 @@
       public function stats_top( $limit = FALSE, $SOPP = FALSE ) {
         global $pxl, $wpdb;
         
-        $played = $pxl->cycle < 3 ? $pxl->cycle * 2 : 6;
+        $played = $pxl->cycle < 3 ? 3 : 6;
         $season = $pxl->season['number'];
         
         $sql_parts = array(
@@ -995,7 +1250,7 @@
             FROM dl_players AS d
             JOIN wp_zoe0kio31p_posts AS p ON p.id = d.player_id
             LEFT JOIN (
-              SELECT team_id, SUM(rank_gain) as mmr
+              SELECT team_id, SUM(mmr) as mmr
               FROM dl_teams AS t
               WHERE season = {$season}
               GROUP BY team_id
@@ -1015,7 +1270,7 @@
               FROM dl_players AS d
               JOIN wp_zoe0kio31p_posts AS p ON p.id = d.player_id
               LEFT JOIN (
-                SELECT team_id, SUM(rank_gain) as mmr
+                SELECT team_id, SUM(mmr) as mmr
                 FROM dl_teams AS t
                 WHERE season = {$season}
                 GROUP BY team_id
@@ -1058,13 +1313,6 @@
         
         foreach ($stats as $key => $value) {
           $s = sprintf($sql, $value);
-          
-          // if ( $key == 'Win Percentage' ) {
-          //   fns::error($key);
-          //   fns::error($value);
-          //   fns::error($s);
-          // }
-          
           $players = $wpdb->get_results(sprintf($s, $value));
           $stats[$key] = $players;
         }
@@ -1104,7 +1352,7 @@
           FROM dl_players AS d
           JOIN {$wpdb->prefix}posts AS p ON p.id = d.player_id
           LEFT JOIN (
-            SELECT team_id, SUM(rank_gain) as mmr
+            SELECT team_id, SUM(mmr) as mmr
             FROM dl_teams AS t
             WHERE t.season = {$season}
             GROUP BY team_id
@@ -1174,11 +1422,11 @@
         global $pxl, $wpdb;
         
         $season = $pxl->season['number'];
-        
+        // todo fix 1000
         $sql = "
           SELECT r1.name, sum(r1.MMR) + 1000 as mmr, count(r1.Matches) as matches, sum(r1.wins) as won, count(r1.Matches) - sum(r1.wins) as lost, ROUND(SUM(r1.kills)/SUM(r1.deaths), 2) as kd, SEC_TO_TIME(SUM(time_to_sec(r1.time))) as time_played
           FROM (
-            SELECT t1.name, sum(t1.rank_gain) as MMR, count(DISTINCT t1.matchID) as matches, t2.wins, sum(t1.kills) as kills, sum(t1.deaths) as deaths, SEC_TO_TIME(SUM(time_to_sec(t1.time))) as time
+            SELECT t1.name, sum(t1.mmr) as MMR, count(DISTINCT t1.matchID) as matches, t2.wins, sum(t1.kills) as kills, sum(t1.deaths) as deaths, SEC_TO_TIME(SUM(time_to_sec(t1.time))) as time
             FROM dl_teams AS t1
             LEFT JOIN (
               SELECT team_id, name, matchID,
@@ -1207,3 +1455,10 @@
       }
   }
 }
+
+/*
+1139
+20230211=HAXX<>guh
+PAY-78603a74
+[{"id":"3dabec02-c07c-c15b-4bac-de0804fecf0b","name":"Pistol Shrimp","tag":null,"kills":22,"deaths":51,"shots":719,"shots_hit":102,"damage":2891,"headshots":11,"score":3851,"push_time":97}]
+*/

@@ -1,4 +1,4 @@
-<div class="team team--<?php echo $team['color']; ?>">
+<div class="team team--<?php echo isset($team['color']) ? $team['color'] : 'gray'; ?>">
   <div class="team__bar">
     <?php 
       printf('
@@ -32,28 +32,52 @@
           'k/d'      => 0,
           'accuracy' => 0,
           'hs'       => 0,
-          'ex'       => '',
+          'ex'       => 0,
           'score'    => 0,
         );
         
-        foreach ($team['players'] as $key => $player) {
+        $key = -1;
+        foreach ($team['players'] as $i => $player) {
+          $key++;
           $assign = '';
           
           $totals['kills']    += $player->kills;
           $totals['deaths']   += $player->deaths;
           $totals['k/d']      += 0;
           $totals['accuracy'] += 0;
-          $totals['hs']       += $player->headshots;
           $totals['score']    += $player->score;
           
-          $kd       = $player->deaths > 0 ? ROUND($player->kills/$player->deaths, 2) : 'inf';
-          $accuracy = $player->shots > 0 && $player->shots_hit > 0 ? ROUND(($player->shots_hit/$player->shots) * 100, 1) : 0;
+          if ( isset($player->headshots) ) $totals['hs'] += $player->headshots;
+          
+          $kd = $player->deaths > 0 ? ROUND($player->kills/$player->deaths, 2) : 'inf';
+          
+          $accuracy = 0;
+          if ( isset($player->shots) && isset($player->shots_hit) ) $accuracy = $player->shots > 0 && $player->shots_hit > 0 ? ROUND(($player->shots_hit/$player->shots) * 100, 1) : 0;
           
           $extras = '';
           
-          if ( isset($player->counters) ) $extras = "{$player->captures}/{$player->counters}";
-          else if ( isset($player->captures) ) $extras = $player->captures;
-          else $extras = $player->push_time . 's';
+          if ( isset($player->counters) ) {
+            if ( $totals['ex'] === 0 ) $totals['ex'] = array(0, 0);
+            
+            $extras = "{$player->captures}/{$player->counters}";
+            $totals['ex'][0] += $player->captures;
+            $totals['ex'][1] += $player->counters;
+          }
+          else if ( isset($player->ctf_captures) ) {
+            if ( $totals['ex'] === 0 ) $totals['ex'] = array(0, 0);
+            
+            $extras = "{$player->ctf_captures}/{$player->ctf_returns}";
+            $totals['ex'][0] += $player->ctf_captures;
+            $totals['ex'][1] += $player->ctf_returns;
+          }
+          else if ( isset($player->captures) ) {
+            $extras = $player->captures;
+            $totals['ex'] += $player->captures;
+          }
+          else if ( isset($player->push_time) ) {
+            $extras = $player->push_time . 's';
+            $totals['ex'] += $player->push_time;
+          }
           
           printf('
             <tr>
@@ -69,7 +93,7 @@
             </tr>',
             $key + 1,
             "{$player->tag} {$player->name}", $assign,
-            $player->kills, $player->deaths, $kd, "{$accuracy}%", $player->headshots,
+            $player->kills, $player->deaths, $kd, ( $accuracy ? "{$accuracy}%" : ''), (isset($player->headshots) ? $player->headshots : ''),
             $extras,
             $player->score
           );
@@ -79,7 +103,14 @@
     <tfoot>
       <tr>
         <td colspan="2">&nbsp;</td>
-        <?php foreach ($totals as $key => $value) printf('<th class="%s">%s</th>', $key, $value); ?>
+        <?php
+          foreach ($totals as $key => $value) {
+            if ( is_array($value) ) $value = sprintf("%s/%s", $value[0], $value[1]);
+            
+            printf('<th class="%s">%s</th>', $key, $value);
+            
+          }
+        ?>
       </tr>
     </tfoot>
   </table>

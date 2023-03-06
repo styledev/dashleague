@@ -25,6 +25,8 @@
       $season = get_field('seasons', 'options');
       $this->season = array_pop($season);
       
+      $season_query = isset($_GET['list_season']) ? $_GET['list_season'] : 'current';
+      
       $post_types = array(
         'map'      => array(
           'menu_icon'   => 'dashicons-location-alt',
@@ -32,7 +34,7 @@
         ),
         'player'   => array(
           'menu_icon'   => 'dashicons-universal-access-alt',
-          'query'       => array('order' => 'ASC', 'orderby' => 'title', 'posts_per_page' => -1, 'season' => 'current'),
+          'query'       => array('order' => 'ASC', 'orderby' => 'title', 'posts_per_page' => -1, 'season' => $season_query),
           'query_admin' => array('order' => 'ASC', 'orderby' => 'title'),
           'supports'    => array('title', 'editor'),
         ),
@@ -45,7 +47,7 @@
         ),
         'team'     => array(
           'menu_icon'   => 'dashicons-groups',
-          'query'       => array('order' => 'ASC', 'orderby' => 'title', 'posts_per_page' => -1, 'season' => 'current'),
+          'query'       => array('order' => 'ASC', 'orderby' => 'title', 'posts_per_page' => -1, 'season' => $season_query),
           'query_admin' => array('order' => 'ASC', 'orderby' => 'title'),
         ),
       );
@@ -75,11 +77,11 @@
           'api-manage'     => array('in_footer' => FALSE, 'deps' => array('api'), 'enqueue' => FALSE),
           'api-form-stats' => array('in_footer' => FALSE, 'deps' => array('api'), 'enqueue' => FALSE),
           'register'       => array('in_footer' => TRUE, 'localize' => array('nonce' => wp_create_nonce('wp_rest')), 'enqueue' => FALSE),
-          'icons'          => array('src' => 'https://kit.fontawesome.com/89a294a8ae.js', 'crossorigin' => 'anonymous', 'enqueue' => FALSE),
+          'icons'          => array('src' => 'https://kit.fontawesome.com/89a294a8ae.js', 'crossorigin' => 'anonymous', 'enqueue' => TRUE),
           'magnific-popup' => array('enqueue' => FALSE, 'in_footer' => TRUE),
           'modal.min'      => array('deps' => array('magnific-popup'), 'enqueue' => FALSE, 'in_footer' => TRUE),
           'swiper.min'     => array('enqueue' => FALSE),
-          'site'           => array('deps' => array('jquery')),
+          'site'           => array('deps' => array('jquery', 'acf-input')),
           'touch-punch.min' => array('enqueue' => TRUE),
         ),
       );
@@ -115,7 +117,8 @@
         add_action('edit_user_profile', array($this, 'action_show_user_profile'));
         add_action('edit_user_profile_update', array($this, 'action_update_profile_fields'));
         add_action('enqueue_block_editor_assets', array($this, 'action_enqueue_block_editor_assets'));
-        add_action('init', array($this, 'action_init'), 20);
+        add_action('init', array($this, 'action_init'));
+        add_action('parse_query', array($this, 'action_parse_query'));
         add_action('personal_options_update', array($this, 'action_update_profile_fields'));
         add_action('profile_update', array($this, 'action_profile_update'), 10);
         add_action('show_user_profile', array($this, 'action_show_user_profile'));
@@ -132,14 +135,21 @@
         $this->tml_remove_form_field();
         
         add_rewrite_tag('%list_players%', '(players)');
+        add_rewrite_tag('%list_season%', '(season-[^/]*)');
         
         add_rewrite_rule('^casting', 'index.php?page=&pagename=catch-all', 'top');
-        add_rewrite_rule('teams/(players)$', 'index.php?post_type=team&list_players=$matches[1]', 'top');
+        add_rewrite_rule('teams/(season-[^/]*)$', 'index.php?post_type=team&list_season=$matches[1]', 'top');
+      }
+      public function action_parse_query() {
+        global $pxlf;
+        
+        if ( $list_season = get_query_var('list_season') ) $pxlf->post_types['team']['query']['season'] = $list_season;
       }
       public function action_profile_update( $user_id ) {
-        $user = get_userdata($user_id);
+        $user    = get_userdata($user_id);
+        $discord = $user->get('discord');
         
-        if ( $discord = $user->get('discord') ) {
+        if ( isset($_POST['nickname']) && $discord ) {
           $profile = get_posts(array(
             'post_type' => 'player',
             'meta_query' => array(
@@ -151,10 +161,21 @@
             )
           ));
           
-          if ( isset($profile[0]) && isset($_POST['nickname']) && $_POST['nickname'] != $profile[0]->post_title ) {
-            $post = $profile[0];
-            $post->post_title = $_POST['nickname'];
-            wp_update_post($post, FALSE, FALSE);
+          $player = isset($profile[0]) ? $profile[0] : FALSE;
+          
+          if ( $player ) {
+            if ( $_POST['nickname'] != $player->post_title ) {
+              if ( $this->season_dates['locked'] ) {
+                $_POST['nickname'] = $player->post_title;
+              }
+              else {
+                $player->post_title = $_POST['nickname'];
+                $player->post_name = sanitize_title_with_dashes($_POST['nickname']);
+                wp_update_post($player, FALSE, FALSE);
+              }
+            }
+            if ( isset($_POST['gamer_id']) ) update_field('gamer_id', $_POST['gamer_id'], $player->ID);
+            if ( isset($_POST['gamer_id_alt']) ) update_field('gamer_id_alt', $_POST['gamer_id_alt'], $player->ID);
           }
         }
         
@@ -170,12 +191,28 @@
         if ( is_admin() ) {
           $timezones = wp_timezone_choice(get_the_author_meta('dl_timezone', $user->ID));
           
+          $tz_history = get_the_author_meta('dl_timezones', $user->ID);
+          if ( !empty($tz_history) ) $tz_history = implode('</li><li>', $tz_history);
+          else $tz_history = 'None Yet';
+          
           printf('
               <table class="form-table">
                 <tr>
                   <th><label for="discord">Discord w/Number</label></th>
                   <td>
                     <input type="text" id="discord" name="discord" value="%s" class="regular-text" />
+                  </td>
+                </tr>
+                <tr>
+                  <th><label for="gamer_id">Gamer ID</label></th>
+                  <td>
+                    <input type="text" id="gamer_id" name="gamer_id" value="%s" class="regular-text" />
+                  </td>
+                </tr>
+                <tr>
+                  <th><label for="gamer_id">Gamer ID (alt)</label></th>
+                  <td>
+                    <input type="text" id="gamer_id_alt" name="gamer_id_alt" value="%s" class="regular-text" />
                   </td>
                 </tr>
                 <tr>
@@ -194,11 +231,22 @@
                     </select>
                   </td>
                 </tr>
+                <tr>
+                  <th><label for="dl_team">Timezone History</label></th>
+                  <td>
+                    <ol>
+                      <li>%s</li>
+                    </ol>
+                  </td>
+                </tr>
               </table>
             ',
             esc_html(get_the_author_meta('discord', $user->ID)),
+            esc_html(get_the_author_meta('gamer_id', $user->ID)),
+            esc_html(get_the_author_meta('gamer_id_alt', $user->ID)),
             $this->dl_team_options($user),
-            $timezones
+            $timezones,
+            $tz_history
           );
         }
       }
@@ -223,9 +271,25 @@
           update_user_meta($user_id, 'discord', sanitize_text_field($_POST['discord']));
         }
         
+        if ( isset($_POST['gamer_id']) ) update_user_meta($user_id, 'gamer_id', sanitize_text_field($_POST['gamer_id']));
+        
+        if ( isset($_POST['gamer_id_alt']) ) update_user_meta($user_id, 'gamer_id_alt', sanitize_text_field($_POST['gamer_id_alt']));
+        
         if ( isset($_POST['dl_team']) ) update_user_meta($user_id, 'dl_team', sanitize_text_field($_POST['dl_team']));
         
-        if ( isset($_POST['dl_timezone']) ) update_user_meta($user_id, 'dl_timezone', sanitize_text_field($_POST['dl_timezone']));
+        if ( isset($_POST['dl_timezone']) ) {
+          $timezone  = sanitize_text_field($_POST['dl_timezone']);
+          $timezones = get_user_meta($user_id, 'dl_timezones', TRUE);
+          
+          if ( !$timezones ) $timezones = [];
+          
+          $current = $timezones ? array_slice($timezones, -1) : [];
+          
+          if ( !isset($current[0]) || $current[0] !== $timezone ) $timezones[] = $timezone;
+          
+          update_user_meta($user_id, 'dl_timezone', $timezone);
+          update_user_meta($user_id, 'dl_timezones', $timezones);
+        }
         
         if ( isset($_POST['nickname']) ) {
           $name = sanitize_text_field($_POST['nickname']);
@@ -441,15 +505,21 @@
           'value' => 'Coming Soon'
         );
         
-        if ( $dates = get_field('season_dates', 'options') ) {
-          if ( $date <= $dates['regular_start'] ) {
+        if ( $dates = get_field('season_dates', 'options', TRUE) ) {
+          $now   = date_create($date);
+          $start = date_create($dates['regular_start']);
+          $end   = date_create($dates['regular_end']);
+          
+          if ( $now <= $start ) {
             $cycle = 1;
             $season['value'] = $dates['regular_start'];
           }
-          else if ( $date >= $dates['regular_start'] && $date <= $dates['regular_end'] ) {
-            $diff    = date_diff(date_create($date), date_create($dates['regular_start']));
+          else if ( $now >= $start && $now <= $end ) {
+            $diff    = date_diff($now, $start);
             $week    = floor($diff->days / 7);
-            $weeks   = array('one', 'one', 'two', 'two', 'three', 'three', 'four', 'four', 'five', 'five', 'six', 'six', 'six');
+            
+            // TODO: Remove after Season 5: Had to add a third week to cycle one for delay
+            $weeks   = array('one', 'one', 'one', 'two', 'two', 'three', 'three', 'four', 'four', 'five', 'five', 'six', 'six');
             $numbers = array('zero' => 0, 'one' => 1, 'two' => 2, 'three' => 3, 'four' => 4, 'five' => 5, 'six' => 6, 'six' => 6);
             
             $season['label'] = 'Cycle';
@@ -457,7 +527,7 @@
             
             $cycle = $numbers[$weeks[$week]];
           }
-          else if ( $date > $dates['regular_end'] && $date < $dates['quarterfinals_day_one'] ) {
+          else if ( $date > $end && $date < $dates['quarterfinals_day_one'] ) {
             $diff = date_diff(date_create($date), date_create($dates['quarterfinals_day_one']));
             
             $season['label'] = 'Playoffs Start';
@@ -504,12 +574,20 @@
         
         if ( isset($dates['new_player_cut-off']) && !empty($dates['new_player_cut-off']) ) {
           $date = new datetime('now');
-          $lock = DateTime::createFromFormat("m/d/Y", $dates['new_player_cut-off']);
+          $date->setTimeZone(new DateTimeZone('America/Los_Angeles'));
+          
+          $lock = DateTime::createFromFormat("m/d/Y H:i:s", "{$dates['new_player_cut-off']} 23:59:59");
           $end  = DateTime::createFromFormat("m/d/Y", $this->season['playoffs_end']);
           
           $this->season_dates['locked'] = $date->format('Ymd') >= $lock->format('Ymd') && $date->format('Ymd') <= $end->format('Ymd');
+          
+          $start = DateTime::createFromFormat("m/d/Y", $dates['regular_start']);
+          $this->season_dates['locked_names'] = $date->format('Ymd') >= $start->format('Ymd') && $date->format('Ymd') <= $end->format('Ymd');
         }
-        else $this->season_dates['locked'] = FALSE;
+        else {
+          $this->season_dates['locked'] = FALSE;
+          $this->season_dates['locked_names'] = FALSE;
+        }
         
         return $season;
       }
@@ -543,18 +621,31 @@
             'order'          => 'ASC'
           )), 'post_title', 'ID');
           
-          $user        = wp_get_current_user();
-          $dl_timezone = $user ? get_the_author_meta('dl_timezone', $user->ID) : '';
-          $timezones   = wp_timezone_choice($dl_timezone);
+          $user       = wp_get_current_user();
+          $timezone   = $user ? get_the_author_meta('dl_timezone', $user->ID) : '';
+          $timezones  = wp_timezone_choice($timezone);
+          $tz_history = get_the_author_meta('dl_timezones', $user->ID);
+          
+          if ( $tz_history ) {
+            $current = array_slice($tz_history, -1);
+            
+            if ( $current[0] == $timezone ) array_pop($tz_history);
+            
+            $tz_history = !empty($tz_history) ? sprintf('<span class="tml-description"><small>Historical Record<ol><li>%s</li></ol></small></span>', implode('</li><li>', $tz_history)) : FALSE;
+          }
           
           $form_fields = array(
             'profile' => array(
               'hr1' => array( 'priority' => 5, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => 'Contact Info<hr class="hr hr--thin"/>')),
-                'discord'     => array( 'priority' => 7, 'label' => 'Discord Name w/Number', 'description' => 'If you need this changed please contact a moderator.', 'attributes' => array('disabled' => true)),
+                'discord'     => array( 'priority' => 7, 'label' => 'Discord Name w/Number', 'description' => 'If you need this changed please contact a moderator.', 'attributes' => array('disabled' => TRUE)),
               'hr2' => array( 'priority' => 8, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/>Player Info<hr class="hr hr--thin"/>')),
-                'nickname'    => array( 'priority' => 9, 'label' => 'Gamertag', 'render_args' => array('control_before' => '<small>(i.e. handle, nickname, etc)</small>')),
-                'dl_team'     => array( 'priority' => 9, 'label' => 'Team', 'type' => 'dropdown', 'options' => $teams, 'description' => ($this->season_dates['locked'] ? 'Rosters are now locked' : 'Changing this will de-roster you from your current team.')),
-                'dl_timezone' => array( 'priority' => 9, 'label' => 'Timezone', 'type' => 'custom', 'content' => sprintf('<select name="dl_timezone" id="dl_timezone" class="tml-field">%s</select>', $timezones)),
+                'nickname'     => array( 'priority' => 9, 'label' => 'Gamertag', 'description' => ($this->season_dates['locked_names'] ? 'Name changes are locked for the season' : ''), 'render_args' => array('control_before' => '<small>(i.e. handle, nickname, etc)</small>')),
+                'gamer_id'     => array( 'priority' => 9, 'label' => 'Hyper Dash Gamer ID', 'description' => ($this->season_dates['locked_names'] ? 'Gamer ID changes are locked for the season' : '<small><a href="/how-to-find-your-gamer-id/" target="_blank">How to find your Gamer ID</a></small>')),
+                'gamer_id_alt' => array( 'priority' => 9, 'label' => 'HD Gamer ID Alt', 'description' => ($this->season_dates['locked_names'] ? 'Gamer ID changes are locked for the season' : '<small>If you use another headset you can list a gamer_id for it here.</small>')),
+                'dl_team'      => array( 'priority' => 9, 'label' => 'Team', 'type' => 'dropdown', 'options' => $teams, 'description' => ($this->season_dates['locked'] ? 'Rosters are now locked' : 'Changing this will de-roster you from your current team.')),
+                'dl_timezone'  => array( 'priority' => 9, 'label' => 'Timezone', 'type' => 'custom', 'content' => sprintf('<select name="dl_timezone" id="dl_timezone" class="tml-field">%s</select>', $timezones), 'render_args' => array(
+                  'after' => $tz_history
+                )),
               'hr3' => array( 'priority' => 9, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/>Site Credentials<hr class="hr hr--thin"/>')),
             ),
             'register' => array(
@@ -562,15 +653,23 @@
                 'discord'    => array( 'priority' => 7, 'label' => __('Discord Username'), 'description' => '', 'render_args' => array('control_before' => '<small>Must include number (e.g. JamesBond#0007)</small>')),
                 'user_email' => array( 'priority' => 7, 'label' => __('Email'), 'type' => 'email', 'id' => 'user_email', 'attributes' => array('maxlength' => 200)),
               'hr2' => array( 'priority' => 8, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/>Player Info<hr class="hr hr--thin"/>')),
-                'nickname'    => array( 'priority' => 8, 'label' => __('Gamertag'), 'render_args' => array('control_before' => '<small>(i.e. handle, nickname, etc)</small>')),
-                'dl_team'     => array( 'priority' => 8, 'label' => __('Team'), 'type' => 'dropdown', 'options' => ( $this->season_dates['locked'] ? array('Free Agent' => 'Free Agent (no team)') : $teams), 'description' => ($this->season_dates['locked'] ? 'Rosters are locked for the Season' : '')),
-                'dl_timezone' => array( 'priority' => 8, 'label' => 'Timezone', 'type' => 'custom', 'content' => sprintf('<select name="dl_timezone" id="dl_timezone" class="tml-field">%s</select>', $timezones)),
+                'nickname'     => array( 'priority' => 8, 'label' => __('Gamertag'), 'render_args' => array('control_before' => '<small>(i.e. handle, nickname, etc)</small>')),
+                'gamer_id'     => array( 'priority' => 8, 'label' => __('Gamer ID'), 'description' => '', 'render_args' => array('control_before' => '<small><a href="/how-to-find-your-gamer-id/" target="_blank">How to find your Gamer ID</a></small>')),
+                'gamer_id_alt' => array( 'priority' => 8, 'label' => __('Gamer ID'), 'description' => '', 'render_args' => array('control_before' => '<small>If you use another headset you can list a gamer_id for it here.</small>')),
+                'dl_team'      => array( 'priority' => 8, 'label' => __('Team'), 'type' => 'dropdown', 'options' => ( $this->season_dates['locked'] ? array('Free Agent' => 'Free Agent (no team)') : $teams), 'description' => ($this->season_dates['locked'] ? 'Rosters are locked for the Season' : '')),
+                'dl_timezone'  => array( 'priority' => 8, 'label' => 'Timezone', 'type' => 'custom', 'content' => sprintf('<select name="dl_timezone" id="dl_timezone" class="tml-field">%s</select>', $timezones)),
               'hr3' => array( 'priority' => 9, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/>Site Credentials<hr class="hr hr--thin"/>')),
             )
           );
           
           if ( $this->season_dates['locked'] ) {
-            $form_fields['profile']['dl_team']['attributes'] = array('disabled' => true);
+            $form_fields['profile']['dl_team']['attributes'] = array('disabled' => TRUE);
+          }
+          
+          if ( $this->season_dates['locked_names'] ) {
+            $form_fields['profile']['nickname']['attributes'] = array('readonly' => TRUE);
+            $form_fields['profile']['gamer_id']['attributes'] = array('readonly' => TRUE);
+            $form_fields['profile']['gamer_id_alt']['attributes'] = array('readonly' => TRUE);
           }
           
           $user    = wp_get_current_user();
@@ -606,6 +705,9 @@
           tml_remove_form_field('profile', 'first_name');
           tml_remove_form_field('profile', 'last_name');
           
+          tml_remove_form_field('profile', 'pass1');
+          tml_remove_form_field('profile', 'pass2');
+          
           // tml_remove_form_field('profile', 'nickname'); // want to hide but need to fiure out around the requirement to have it
           tml_remove_form_field('profile', 'display_name');
           tml_remove_form_field('profile', 'contact_info_section_header');
@@ -626,7 +728,34 @@
         
         if ( isset($_POST['nickname']) ) {
           wp_update_user(array('ID' => $user_id, 'first_name' => $_POST['nickname'], 'user_nicename' => $_POST['nickname']));
+          
+          $player = get_page_by_title($_POST['nickname'], OBJECT, 'player');
+          
+          if ( !$player ) {
+            $season = get_term_by('slug', 'current', 'season');
+            
+            $player_id = wp_insert_post(array(
+              'post_title'  => $_POST['nickname'],
+              'post_type'   => 'player',
+              'post_status' => 'publish',
+              'meta_input'  => array(
+                'discord_username'  => $_POST['discord'],
+                '_discord_username' => 'field_60c6b9c8f832d',
+                'gamer_id'          => $_POST['gamer_id'],
+                '_gamer_id'         => 'field_63a241dd6d4ca',
+                'gamer_id_alt'      => $_POST['gamer_id_alt'],
+                '_gamer_id_alt'     => 'field_63c22257d2e4d',
+              ),
+              'tax_input' => array(
+                'season' => $season->term_id
+              )
+            ));
+          }
         }
+        
+        if ( isset($_POST['gamer_id']) ) update_user_meta($user_id, 'gamer_id', sanitize_text_field($_POST['gamer_id']));
+        
+        if ( isset($_POST['gamer_id_alt']) ) update_user_meta($user_id, 'gamer_id_alt', sanitize_text_field($_POST['gamer_id_alt']));
         
         if ( isset($_POST['dl_team']) ) update_user_meta($user_id, 'dl_team', sanitize_text_field($_POST['dl_team']));
         
@@ -636,8 +765,27 @@
         $this->tml_errors = $errors;
         
         if ( empty($_POST['discord']) || !strpos($_POST['discord'], '#') ) $errors->add('discord', '<strong>Error</strong>: Please enter your discord name with number.');
+        
+        if ( empty($_POST['gamer_id']) ) $errors->add('gamer_id', '<strong>Error</strong>: Please enter your gamer id.');
+        
         if ( empty($_POST['user_email']) ) $errors->add('user_email', '<strong>Error</strong>: Please enter your email.');
+        
         if ( empty($_POST['user_login']) ) $errors->add('user_login', '<strong>Error</strong>: Please enter a username.');
+        
+        if ( isset($_POST['nickname']) ) {
+          $player  = get_page_by_title($_POST['nickname'], OBJECT, 'player');
+          $discord = get_field('discord_username', $player->ID);
+          
+          if ( $player ) {
+            if ( $discord && $discord !== $_POST['discord'] ) $errors->add('nickname', '<strong>Error</strong>: The discord username you are trying to register does not match the player profile. Contact Styledev for help.');
+            else {
+              global $wpdb;
+              $sql = $wpdb->prepare("SELECT user_id FROM {$wpdb->prefix}usermeta WHERE meta_key = 'discord' AND meta_value = '%s'", $discord);
+              $user = $wpdb->get_var($sql);
+              if ( $user ) $errors->add('nickname', '<strong>Error</strong>: This gamertag is aleady in use by another player. Please choose another one.');
+            }
+          }
+        }
         
         $timezone = tml_get_request_value('dl_timezone', 'post');
         if ( ! $timezone || $timezone == '' ) {

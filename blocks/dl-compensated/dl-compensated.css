@@ -1,0 +1,5 @@
+.block_compensated table{border-collapse:collapse;font-size:12px;width:100%;}
+.block_compensated th, .block_compensated td{border:1px solid #ccc;padding:0.25rem;}
+.block_compensated th{white-space:nowrap;}
+.block_compensated td[align="center"]{text-align:center;}
+.block_compensated tbody tr:nth-child(odd){background:#eee;}

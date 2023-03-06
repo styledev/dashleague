@@ -6,6 +6,7 @@
             "key": "field_5faebcd5757cf",
             "label": "Captains",
             "name": "captains",
+            "aria-label": "",
             "type": "relationship",
             "instructions": "",
             "required": 0,
@@ -31,6 +32,7 @@
             "key": "field_6223b3298fdb7",
             "label": "Manage Players",
             "name": "",
+            "aria-label": "",
             "type": "message",
             "instructions": "",
             "required": 0,
@@ -48,6 +50,7 @@
             "key": "field_5fb1e370c7545",
             "label": "Players",
             "name": "players",
+            "aria-label": "",
             "type": "relationship",
             "instructions": "",
             "required": 0,
@@ -73,6 +76,7 @@
             "key": "field_61d1015c63267",
             "label": "Looking for Players?",
             "name": "looking_for_players",
+            "aria-label": "",
             "type": "true_false",
             "instructions": "",
             "required": 0,
@@ -87,6 +91,36 @@
             "ui": 1,
             "ui_on_text": "",
             "ui_off_text": ""
+        },
+        {
+            "key": "field_63b3549593b67",
+            "label": "Ideal Servers",
+            "name": "ideal_servers",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "Amsterdam \/ Frankfurt": "Amsterdam \/ Frankfurt",
+                "Dallas \/ Iowa": "Dallas \/ Iowa",
+                "Hong Kong \/ Singapore": "Hong Kong \/ Singapore",
+                "New York \/ North Carolina": "New York \/ North Carolina",
+                "Oregon \/ San Jose": "Oregon \/ San Jose",
+                "Sydney": "Sydney"
+            },
+            "default_value": [],
+            "return_format": "value",
+            "multiple": 1,
+            "allow_null": 0,
+            "ui": 1,
+            "ajax": 0,
+            "placeholder": ""
         }
     ],
     "location": [
@@ -107,5 +141,5 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
-    "modified": 1646508461
+    "modified": 1676616598
 }

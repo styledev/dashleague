@@ -27,9 +27,6 @@
     'Strength of Opponent' => 3,
     'Win Percentage'       => 7,
   );
-  
-  // $top_ten_teams   = $pxl->stats->top_ten_teams();
-  // fns::put($top_ten_teams);
 ?>
 
 <script src="<?php echo RES ?>/js/html2canvas.min.js"></script>
@@ -49,11 +46,11 @@
         </div>
         <div class="bar__pos bar__pos--right">
           <div class="bar__pill bar__pill--time" title="total time played">
-            <span class="bar__icon"><i class="fas fa-clock"></i></span>
+            <span class="bar__icon"><i class="fa-solid fa-clock"></i></span>
             <?php echo $global['time']; ?>
           </div>
           <div class="bar__pill bar__pill--players" title="players">
-            <span class="bar__icon"><i class="fas fa-vr-cardboard"></i></i></span>
+            <span class="bar__icon"><i class="fa-solid fa-vr-cardboard"></i></i></span>
             <?php echo $global['players']; ?>
           </div>
         </div>
@@ -68,6 +65,7 @@
             <h6 class="stat__heading">
               <span>Standings</span>
               <span>MMR</span>
+              <span>SR</span>
             </h6>
             <?php
               foreach ($standings as $key => $team) {
@@ -82,11 +80,12 @@
                         <a href="/teams/%s">
                           <span class="stat_player__name">%1$s</span>
                           <span class="stat_player__stat">%s</span>
+                          <span class="stat_player__stat">%s</span>
                         </a>
                       </div>
                     </div>
                   ',
-                  $team->name, $pos, $slug, $team->mmr + 1000
+                  $team->name, $pos, $slug, $team->mmr, $team->sr
                 );
               }
             ?>

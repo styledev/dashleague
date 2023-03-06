@@ -18,7 +18,7 @@
       </select>
     </div>
     <div class="fields__field">
-      <label class="label" for="team_<?php echo $team_id; ?>_score_points">Score<br><small>(Points OR % and Time Remaining)</small></label>
+      <label class="label" for="team_<?php echo $team_id; ?>_score_points">Score<br><small>(Points OR % and Time)</small></label>
       <div class="fields__field--sub">
         <input class="score time input hide" type="number" name="teams[<?php echo $team_id; ?>][score_percentage]" value="" id="team_<?php echo $team_id; ?>_score_percentage" placeholder="%">
         <input class="score time input hide" type="text" name="teams[<?php echo $team_id; ?>][score_time]" value="" id="team_<?php echo $team_id; ?>_score_time" mask="00:00">
@@ -38,7 +38,7 @@
           }
           
           printf('
-            <div class="fields__field fields__field--widechoices">
+            <div class="fields__field ">
               <label class="label" for="team_player_%1$d_%2$d_%2$s">%4$s</label>
           ', $team_id, $i, $field, $title);
           

@@ -33,7 +33,7 @@
           foreach ($tiers as $tier => $data) {
             $teams = array();
             
-            foreach ($data as $team) $teams[] = sprintf('<span>%s</span><span>%s</span>', $team['name'], $team['mmr']);
+            foreach ($data as $team) $teams[] = sprintf('<span>%s</span><span>%s</span><span>%s</span>', $team['name'], $team['mmr'], $team['sr']);
             
             printf(
               '<div class="tier tier--%s">

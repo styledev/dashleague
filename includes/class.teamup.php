@@ -76,7 +76,7 @@
         foreach ($upcoming as $event) {
           if ( strlen($event->start_dt) != 25 ) $event->start_dt .= '-04:00';
           $start = DateTime::createFromFormat("Y-m-d\TH:i:sT", $event->start_dt);
-          $start->setTimeZone(new DateTimeZone('America/Los_Angeles'));
+          $start->setTimeZone(new DateTimeZone('America/New_York'));
           
           $diff    = date_diff($now, $start);
           $network = isset($event->custom->casting_network) ? $event->custom->casting_network[0] : FALSE;
@@ -109,13 +109,19 @@
             $link = sprintf('<button class="btn btn--ghost btn--none">%s</button>', $event->custom->status[0]);
           }
           
+          $versus = $team_a_logo && $team_b_logo ? sprintf('
+            <div class="event__vs">
+              <a href="%s">%s</a>
+              <span>VS</span>
+              <a href="%s">%s</a>
+            </div>',
+            (isset($team_a->ID) ? get_permalink($team_a->ID) : ''), $team_a_logo,
+            (isset($team_b->ID) ? get_permalink($team_b->ID) : ''), $team_b_logo
+          ) : '';
+          
           $match = sprintf('
             <div class="event">
-              <div class="event__vs">
-                <a href="%s">%s</a>
-                <span>VS</span>
-                <a href="%s">%s</a>
-              </div>
+              %s
               <div class="event__details">
                 <div class="event__title">
                   %s
@@ -131,8 +137,7 @@
                 %s
               </div>
             </div>',
-            (isset($team_a->ID) ? get_permalink($team_a->ID) : ''), $team_a_logo,
-            (isset($team_b->ID) ? get_permalink($team_b->ID) : ''), $team_b_logo,
+            $versus,
             $teams[0], $teams[2],
             $event->start_dt,
             $start->format('F jS, Y'), $start->format('g:ia T'),

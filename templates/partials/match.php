@@ -8,7 +8,7 @@
   
   $scores     = array_column($match['teams'], 'score', 'name'); arsort($scores);
   $winner     = array_search(max($scores), $scores);
-  $recorded   = empty($match['recorded']) ? '' : '<span class="event__recorded" title="MMR Approved"><i class="fas fa-check-circle"></i></span>';
+  $recorded   = empty($match['recorded']) ? '' : '<span class="event__recorded" title="MMR Approved"><i class="fa-solid fa-check-circle"></i></span>';
   $scoreboard = is_null($status) || $status == 'process' || $status == 'display';
   $action     = $scoreboard ? '<button class="btn btn--ghost" data-action="show" data-target="games" data-toggle="btn--ghost active" data-text="Scoreboards" data-active="Close"></button>' : '<div class="event__approved">Approved</div>';
   $collapsed  = $status == 'process' ? '' : ' games--collapsed';
@@ -61,11 +61,16 @@
                 <span class="details__winner">Winner: %s</span>
                 <span class="details__time">Time: %s</span>
               </div>',
-              $maps[$game['map']], ucwords($game['winner']), $game['time']
+              $maps[$game['map']],
+              ucwords($game['winner']),
+              $game['time']
             );
             
             echo '<div class="game__scores">';
-              foreach ($game['teams'] as $team) include(PARTIAL . '/match-scoreboard.php');
+              foreach ($game['teams'] as $team) {
+                if ( !isset($team['name']) ) continue;
+                include(PARTIAL . '/match-scoreboard.php');
+              }
             echo '</div>';
             
           echo '</div>';
