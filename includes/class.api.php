@@ -213,8 +213,9 @@
         global $pxl, $wpdb;
         
         $params = array_merge($data, $_GET);
-        
         $items  = array();
+        
+        if ( isset($params['cycle']) && !$params['cycle'] ) return FALSE;
         
         $cycles    = $wpdb->get_results($wpdb->prepare("SELECT cycle as num, start, end FROM dl_tiers WHERE season = %s GROUP BY cycle ORDER BY cycle ASC", $pxl->season['number']), ARRAY_A);
         $cycle_num = isset($params['cycle']) ? $params['cycle'] : 1;
@@ -412,13 +413,13 @@
             END as mmr,
             sum(tm.rank_gain) + 1000 as sr
            FROM dl_teams AS tm
-           JOIN dl_tiers AS tr ON tm.team_id = tr.team_id AND tr.season = %1$d AND tr.cycle = 1
-           WHERE tm.season = %1$d AND tm.datetime <= "%2$s" AND tm.team_id IN ('.$teams_ids.')
+           JOIN dl_tiers AS tr ON tm.team_id = tr.team_id AND tr.season = %d AND tr.cycle = 1
+           WHERE tm.season = %d AND tm.datetime <= "%s" AND tm.team_id IN ('.$teams_ids.')
            GROUP BY tm.name
            ORDER BY mmr DESC
           ',
           $pxl->season['number'],
-          $cycle['end'],
+          $pxl->season['number'],
           $cycle_end->format('Y-m-d H:i:s')
         );
         
@@ -428,15 +429,15 @@
         if ( !empty($teams) ) {
           
           $dasher = array_slice($teams, 0, $breakdown['dasher']);
-          usort($dasher, fn($a, $b) => $b['sr'] <=> $a['sr']);
+          // usort($dasher, fn($a, $b) => $b['sr'] <=> $a['sr']);
           $tiers[] = $dasher;
           
           $sprinter = array_slice($teams, $breakdown['dasher'], $breakdown['sprinter']);
-          usort($sprinter, fn($a, $b) => $b['sr'] <=> $a['sr']);
+          // usort($sprinter, fn($a, $b) => $b['sr'] <=> $a['sr']);
           $tiers[] = $sprinter;
           
           $walker = array_slice($teams, $breakdown['dasher']+$breakdown['sprinter'], $breakdown['walker']);
-          usort($walker, fn($a, $b) => $b['sr'] <=> $a['sr']);
+          // usort($walker, fn($a, $b) => $b['sr'] <=> $a['sr']);
           $tiers[] = $walker;
         }
         

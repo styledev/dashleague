@@ -576,10 +576,10 @@
           $date = new datetime('now');
           $date->setTimeZone(new DateTimeZone('America/Los_Angeles'));
           
-          $lock = DateTime::createFromFormat("m/d/Y H:i:s", "{$dates['new_player_cut-off']} 23:59:59");
+          $lock = DateTime::createFromFormat("m/d/Y\TH:i:sT", "{$dates['new_player_cut-off']}T23:59:59 -08:00");
           $end  = DateTime::createFromFormat("m/d/Y", $this->season['playoffs_end']);
           
-          $this->season_dates['locked'] = $date->format('Ymd') >= $lock->format('Ymd') && $date->format('Ymd') <= $end->format('Ymd');
+          $this->season_dates['locked'] = $date->format('Ymd') > $lock->format('Ymd') && $date->format('Ymd') <= $end->format('Ymd');
           
           $start = DateTime::createFromFormat("m/d/Y", $dates['regular_start']);
           $this->season_dates['locked_names'] = $date->format('Ymd') >= $start->format('Ymd') && $date->format('Ymd') <= $end->format('Ymd');

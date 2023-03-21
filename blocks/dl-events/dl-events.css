@@ -24,7 +24,7 @@
 
 .event__title{color:initial;font-family:'Oswald',sans-serif;font-size:24px;font-weight:600;}
 .event__team--winner, .event__score--winner{color:var(--green);}
-.event__date{color:var(--orange);}
+.event__datetime{color:var(--orange);}
 .event__recorded{border-radius:100%;color:var(--grey-dark);display:inline-block;text-align:center;}
 .event__actions{text-align:right;}
 .event__actions a, .event__actions button{text-align:center;width:100%;}

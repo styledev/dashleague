@@ -845,6 +845,8 @@
           $this->game_init($game, $teams);
           $this->game_teams($game);
           
+          if ( !$game['game_id'] ) $game['game_id'] = strtoupper(substr($game['type'], 0, 3)) . '-' . substr(wp_generate_uuid4(), -8);
+          
           if ( !in_array($game['game_id'], array('forfeit', 'double-forfeit', 'map-forfeit')) ) {
             $this->game_round_time($game);
             $this->game_dropped_players($game);
@@ -881,23 +883,64 @@
       public function double_cp( $matches ) {
         $match = $this->double_cp_match($matches[0]);
         
-        $data = [
-          'kills' => [],
-          'score' => [],
-          'time'  => [],
-        ];
+        if ( $matches[0]['winner'] === $matches[1]['winner'] ) {
+          $match['winner'] = $matches[1]['winner'];
+          $match['notes']  = "Double CP decided by double win.";
+          
+          $winner = $matches[0]['winner'];
+        }
+        else {
+          $winner = [];
+          
+          $data = [
+            'kills'  => [],
+            'score'  => [],
+            'points' => [],
+          ];
+          
+          $milleseconds = 0;
+          
+          foreach ($matches as $key => $m) {
+            $teams = array_column($m['teams'], 'score'); sort($teams);
+            $data['points'][$m['winner']] = $teams[1] - $teams[0];
+            
+            foreach ($m['teams'] as $team_name => $team) {
+              if ( !isset($data['score'][$team_name]) ) $data['score'][$team_name] = 0;
+              $data['score'][$team_name] += array_sum(array_column($team['players'], 'score'));
+              
+              if ( !isset($data['kills'][$team_name]) ) $data['kills'][$team_name] = 0;
+              $data['kills'][$team_name] += array_sum(array_column($team['players'], 'kills'));
+            }
+          }
+          
+          $match['time'] = gmdate("H:i:s", $match['time']) .'.'.$milleseconds;
+          
+          foreach ($data as $type => $score) {
+            $teams = array_keys($score);
+            
+            if ( $score[$teams[0]] == $score[$teams[1]] ) $winner[$type] = FALSE;
+            else $winner[$type] = $score[$teams[0]] > $score[$teams[1]] ? $teams[0] : $teams[1];
+          }
+          
+          $winner    = array_filter($winner);
+          $winner_by = array_key_last($winner);
+          
+          $match['winner'] = $winner[$winner_by];
+          
+          if ( $winner_by ) {
+            switch ($winner_by) {
+              case 'points':
+                $match['notes'] .= sprintf('Double CP decided by points differential<br>%s points', str_replace(array('=', '&'), array(' = ', ' VS '), http_build_query($data[$winner_by])));
+              break;
+              default:
+                $match['notes'] = sprintf('Double CP decided by %s: <br>%s', $winner_by, str_replace(array('=', '&'), array(' = ', ' VS '), http_build_query($data[$winner_by])));
+              break;
+            }
+          }
+        }
         
         foreach ($matches as $key => $m) {
-          $data['time'][$m['winner']] = $m['round_data'][0]->ROUND_TIME;
-          $match['time'] += $m['round_data'][0]->ROUND_TIME;
-          
           foreach ($m['teams'] as $team_name => $team) {
-            if ( !isset($data['score'][$team_name]) ) $data['score'][$team_name] = 0;
-            $data['score'][$team_name] += array_sum(array_column($team['players'], 'score'));
-            
-            if ( !isset($data['kills'][$team_name]) ) $data['kills'][$team_name] = 0;
-            $data['kills'][$team_name] += array_sum(array_column($team['players'], 'kills'));
-            
             if ( !isset($match['teams'][$team_name]['name']) ) $match['teams'][$team_name]['name']   = $team['name'];
             if ( !isset($match['teams'][$team_name]['color']) ) $match['teams'][$team_name]['color'] = $team['color'];
             if ( !isset($match['teams'][$team_name]['score']) ) $match['teams'][$team_name]['score'] = 0;
@@ -907,38 +950,6 @@
             if ( !isset($match['teams'][$team_name]['players']) ) $match['teams'][$team_name]['players'] = array_column($team['players'], NULL, 'name');
             else $this->double_cp_players($team['players'], $match['teams'][$team_name]['players']);
           }
-        }
-        
-        $match['time'] = gmdate("H:i:s", $match['time']);
-        
-        $winner = [];
-        
-        foreach ($data as $type => $score) {
-          $teams = array_keys($score);
-          
-          if ( $type == 'time' ) {
-            if ( $score[$teams[0]] == $score[$teams[1]] ) $winner[$type] = FALSE;
-            else $winner[$type] = $score[$teams[0]] < $score[$teams[1]] ? $teams[0] : $teams[1];
-          }
-          else {
-            if ( $score[$teams[0]] == $score[$teams[1]] ) $winner[$type] = FALSE;
-            else $winner[$type] = $score[$teams[0]] > $score[$teams[1]] ? $teams[0] : $teams[1];
-          }
-        }
-        
-        $winner          = array_filter($winner);
-        $winner_by       = array_key_last($winner);
-        
-        $match['winner'] = $winner[$winner_by];
-        $match['notes']  = "Double CP decided by {$winner_by}: ";
-        
-        switch ($winner_by) {
-          case 'time':
-            $match['notes'] .= sprintf('<br>%s (in seconds)', str_replace(array('=', '&'), array(' = ', ' VS '), http_build_query($data[$winner_by])));
-            break;
-          default:
-            $match['notes'] .= sprintf('<br>%s', str_replace(array('=', '&'), array(' = ', ' VS '), http_build_query($data[$winner_by])));
-            break;
         }
         
         return $match;
@@ -1008,8 +1019,9 @@
       }
       private function game_dropped_players( &$game ) {
         foreach ($game['dropped_players'] as $player) {
-          if ( $player->score == 0 ) continue;
-          $game['teams'][strtoupper($player->tag)]['players'][] = $player;
+          if ( $player->score == 0 || empty($player->tag) ) continue;
+          
+          if ( isset($game['teams'][strtoupper($player->tag)]) ) $game['teams'][strtoupper($player->tag)]['players'][] = $player;
         }
       }
       private function game_players_sort( &$game ) {

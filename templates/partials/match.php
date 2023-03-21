@@ -25,8 +25,8 @@
           <span class="event__team event__team--%5$s">%s</span>
           <span class="event__score event__score--%s">[%s]</span>
         </div>
-        <div class="event__date" data-date="%s">
-          %s%s
+        <div class="event__datetime" data-date="%s">
+          <span class="event__date">%s</span><span class="event__time">%s</span>
         </div>
       </div>
       <div class="event__vs">

@@ -2,7 +2,12 @@
   global $wpdb;
   
   $global          = $pxl->stats->global();
-  $standings       = $pxl->stats->data_standings();
+  // $standings       = $pxl->stats->data_standings();
+  
+  $cycles    = $pxl->api->tool_cycles();
+  $cycle     = $cycles[array_key_last($cycles)];
+  $standings = $pxl->api->data_tiers(array('cycle' => $cycle['num'], 'mmr' => TRUE));
+  
   $top_ten_players = $pxl->stats->stats_top(10);
   
   $teams = array_column(get_posts(array(
@@ -62,31 +67,39 @@
       <div class="standings grid__item grid__item--fourth">
         <div class="stats">
           <div class="stat">
-            <h6 class="stat__heading">
-              <span>Standings</span>
-              <span>MMR</span>
-              <span>SR</span>
-            </h6>
             <?php
-              foreach ($standings as $key => $team) {
-                $pos = $key + 1;
-                $slug = str_replace('-', '', $team->name);
+              foreach ($standings as $tier => $teams) {
+                $pos = 0;
                 
                 printf(
-                  '
-                    <div class="stat__list" data-team="%s">
-                      <div class="stat_player" data-key="%2s">
-                        <span class="stat_player__pos">%2$s.</span>
-                        <a href="/teams/%s">
-                          <span class="stat_player__name">%1$s</span>
-                          <span class="stat_player__stat">%s</span>
-                          <span class="stat_player__stat">%s</span>
-                        </a>
-                      </div>
-                    </div>
-                  ',
-                  $team->name, $pos, $slug, $team->mmr, $team->sr
+                  '<h6 class="stat__heading">
+                    <span>%s</span>
+                    <span>MMR</span>
+                    <span>SR</span>
+                  </h6>',
+                  ucwords($tier)
                 );
+                
+                foreach ($teams as $key => $team) {
+                  $pos = $key + 1;
+                  $slug = str_replace('-', '', $team['name']);
+                  
+                  printf(
+                    '
+                      <div class="stat__list" data-team="%s">
+                        <div class="stat_player" data-key="%2s">
+                          <span class="stat_player__pos">%2$s.</span>
+                          <a href="/teams/%s">
+                            <span class="stat_player__name">%1$s</span>
+                            <span class="stat_player__stat">%s</span>
+                            <span class="stat_player__stat">%s</span>
+                          </a>
+                        </div>
+                      </div>
+                    ',
+                    $team['name'], $pos, $slug, $team['mmr'], $team['sr']
+                  );
+                }
               }
             ?>
           </div>

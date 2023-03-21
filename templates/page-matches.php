@@ -30,8 +30,14 @@
             
             $status = 'display';
             
+            $end = DateTime::createFromFormat("Y-m-d H:i:s", $cycle['end']);
+            $tz = new DateTimeZone('America/Los_Angeles');
+            $end->setTimeZone($tz);
+            $end->add(new DateInterval('P1D'));
+            
             $query = array(
-              'where' => sprintf("gs.datetime >= '%s' AND gs.datetime <= '%s'", $cycle['start'], $cycle['end'])
+              'where' => sprintf("gs.datetime >= '%s' AND gs.datetime <= '%s'", $cycle['start'], $end->format('Y-m-d H:i:s'))
+              // 'where' => "gs.matchID = '20230226=TBDi<>guh'" // for testing
             );
             
             $matches = $pxl->stats->games($query);

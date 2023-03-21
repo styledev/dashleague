@@ -73,10 +73,16 @@
           'Past Matches'     => array(),
         );
         
+        $user    = wp_get_current_user();
+        $user_tz = $user->ID ? get_user_meta($user->ID, 'dl_timezone', TRUE) : 'America/New_York';
+        
+        if ( strpos($user_tz, 'UTC') > -1 ) $user_tz = str_replace('UTC', '', $user_tz);
+        
         foreach ($upcoming as $event) {
           if ( strlen($event->start_dt) != 25 ) $event->start_dt .= '-04:00';
+          
           $start = DateTime::createFromFormat("Y-m-d\TH:i:sT", $event->start_dt);
-          $start->setTimeZone(new DateTimeZone('America/New_York'));
+          $start->setTimeZone(new DateTimeZone($user_tz));
           
           $diff    = date_diff($now, $start);
           $network = isset($event->custom->casting_network) ? $event->custom->casting_network[0] : FALSE;
@@ -128,9 +134,9 @@
                   <span>vs</span>
                   %s
                 </div>
-                <div class="event__date" data-date="%s">
-                  %s @
-                  <span class="event__timezone">%s</span>
+                <div class="event__datetime" data-date="%s" data-user="%d">
+                  <span class="event__date">%s</span> @
+                  <span class="event__time">%s</span>
                 </div>
               </div>
               <div class="event__actions">
@@ -139,7 +145,7 @@
             </div>',
             $versus,
             $teams[0], $teams[2],
-            $event->start_dt,
+            $event->start_dt, $user->ID,
             $start->format('F jS, Y'), $start->format('g:ia T'),
             $link
           );

@@ -6,7 +6,10 @@
   $cycle = isset($_GET['cycle']) ? $_GET['cycle'] : $pxl->cycle;
   $tiers = $pxl->api->data_tiers(array('cycle' => $cycle, 'mmr' => TRUE));
   
-  if ( !$tiers ) printf("<h2>Tiers are not set yet for cycle %d</h2>", $cycle);
+  if ( !$tiers ) {
+    printf("<h2>No Data for Cycle %d</h2>", $cycle);
+    die;
+  }
 ?>
 <script src="<?php echo RES ?>/js/html2canvas.min.js"></script>
 
@@ -63,19 +66,21 @@
   <div class="clone">
     <div class="tiers">
       <?php
-        foreach ($tiers as $tier => $data) {
-          $teams = array();
+        if ( $tiers ) {
+          foreach ($tiers as $tier => $data) {
+            $teams = array();
           
-          foreach ($data as $team) {
-            $teams[] = sprintf('<strong>%s</strong><span>%s</span><span>%s</span>', $team['name'], $team['mmr'], $team['sr']);
+            foreach ($data as $team) {
+              $teams[] = sprintf('<strong>%s</strong><span>%s</span><span>%s</span>', $team['name'], $team['mmr'], $team['sr']);
+            }
+          
+            printf(
+              '<div class="tier tier--%s">
+                <div class="tier__team">%s</div>
+              </div>',
+              ucwords($tier), implode('</div><div class="tier__team">', $teams)
+            );
           }
-          
-          printf(
-            '<div class="tier tier--%s">
-              <div class="tier__team">%s</div>
-            </div>',
-            ucwords($tier), implode('</div><div class="tier__team">', $teams)
-          );
         }
       ?>
     </div>

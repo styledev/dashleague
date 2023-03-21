@@ -62,8 +62,8 @@
                 unset($team['rank']);
                 
                 // TODO : S5 use rank_gain (SR) and mmr
-                // unset($team['rank_gain']);
-                // unset($team['mmr']);
+                unset($team['rank_gain']);
+                unset($team['mmr']);
                 
                 unset($team['score']);
                 unset($team['time']);
@@ -123,7 +123,9 @@
                   
                 // Store Team Data
                   // TODO : S5 only save on mmr
-                  if ( $this->type == 'SR' ) $this->store_team_stat($data['info'], $team);
+                  if ( $this->type == 'SR' ) {
+                    $this->store_team_stat($data['info'], $team);
+                  }
               }
               
             /* Update Match */
