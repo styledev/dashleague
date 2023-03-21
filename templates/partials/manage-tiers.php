@@ -7,6 +7,16 @@
   
   $pxl->season_dates();
   
+  $teams = get_posts(array(
+    'order'          => 'ASC',
+    'orderby'        => 'post_title',
+    'posts_per_page' => -1,
+    'post_type'      => 'team',
+    'season'         => 'current',
+  ));
+  
+  $teams = !empty($teams) ? array_column($teams, 'post_title', 'ID') : FALSE;
+  
   $cycles  = $pxl->api->tool_cycles();
   $cycle   = $cycles[array_key_last($cycles)];
   $current = $pxl->api->data_tiers(array('cycle' => $cycle['num'], 'mmr' => TRUE));

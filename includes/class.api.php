@@ -261,6 +261,9 @@
             $order = 'tr1.name ASC';
           }
           else {
+            $start = DateTime::createFromFormat("Y-m-d H:i:s", "{$cycle['start']}");
+            $start = $start->modify('+6 hour')->format('Y-m-d H:i:s');
+            
             $select[] = 'SUM(t.rank_gain) + 1000 as sr';
             $select[] = "
               CASE
@@ -269,7 +272,7 @@
                 ELSE SUM(t.mmr) + 1000
               END as mmr";
             $order = 'sr DESC';
-            $where .= $wpdb->prepare(' AND t.datetime <= %s', $cycle['start']);
+            $where .= $wpdb->prepare(' AND t.datetime <= %s', $start);
           }
           
           $join[] = $wpdb->prepare('JOIN dl_tiers AS tr2 ON t.team_id = tr2.team_id AND tr2.season = %d AND tr2.cycle = %d', $season, $cycle['num']);
