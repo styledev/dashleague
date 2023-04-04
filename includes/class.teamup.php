@@ -103,10 +103,12 @@
           $servers = isset($event->custom->servers) ? str_replace('_', ' ', implode(', ', $event->custom->servers)) : 'Not Specified';
           $teams   = explode(' ', $event->title);
           
-          $team_a = get_page_by_title($teams[0], OBJECT, 'team');
+          $team_a      = new WP_Query([ 'posts_per_page' => 1, 'post_type' => 'team', 'title' => $teams[0] ]);
+          $team_a      = $team_a->post;
           $team_a_logo = pxl::image($team_a, array( 'w' => 75, 'h' => 75, 'return' => 'tag' ));
           
-          $team_b = get_page_by_title($teams[2], OBJECT, 'team');
+          $team_b      = new WP_Query([ 'posts_per_page' => 1, 'post_type' => 'team', 'title' => $teams[2] ]);
+          $team_b      = $team_b->post;
           $team_b_logo = pxl::image($team_b, array( 'w' => 75, 'h' => 75, 'return' => 'tag' ));
           
           if ( isset($teams[3]) && $teams[3] == '(cancelled)' || ( isset($event->custom->status) && $event->custom->status[0] = 'cancelled' ) ) $link = sprintf('<button class="btn btn--ghost btn--none">%s</button>', 'Cancelled');

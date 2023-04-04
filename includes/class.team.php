@@ -278,16 +278,17 @@
         foreach ($ideal as $server => $score) {
           if ( count($servers) < 2 ) {
             $current_score = $score;
-            if ( $score > 3 ) $servers[] = $server;
-            else if ( $score >= 2 ) $servers[] = $server;
+            if ( $score > 3 ) $servers[] = "{$server} ({$score})";
+            else if ( $score >= 2 ) $servers[] = "{$server} ({$score})";
           }
           else if ( $score > 2 && $score === $current_score ) {
-            $servers[] = $server;
+            $servers[] = "{$server} ({$score})";
           }
         }
         
         if ( count($servers) < 2 ) {
-          $offset = $this->offset_closest($this->servers_offset[$servers[0]], $keys, 'nomatch');
+          $offset = explode(' (', $servers[0]);
+          $offset = $this->offset_closest($this->servers_offset[$offset[0]], $keys, 'nomatch');
           $server = isset($this->offset_servers[$offset]) ? $this->offset_servers[$offset] : FALSE;
           $servers[] = $server;
         }
@@ -314,6 +315,8 @@
       }
       private function offset_closest($search, $arr, $exact = TRUE ) {
         $closest = null;
+        
+        $arr = array_reverse($arr);
         
         foreach ($arr as $item) {
           $abs = abs($search - $closest) > abs($item - $search);

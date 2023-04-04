@@ -729,7 +729,8 @@
         if ( isset($_POST['nickname']) ) {
           wp_update_user(array('ID' => $user_id, 'first_name' => $_POST['nickname'], 'user_nicename' => $_POST['nickname']));
           
-          $player = get_page_by_title($_POST['nickname'], OBJECT, 'player');
+          $player = new WP_Query([ 'posts_per_page' => 1, 'post_type' => 'player', 'title' => $_POST['nickname'] ]);
+          $player = $player->post;
           
           if ( !$player ) {
             $season = get_term_by('slug', 'current', 'season');
@@ -773,7 +774,8 @@
         if ( empty($_POST['user_login']) ) $errors->add('user_login', '<strong>Error</strong>: Please enter a username.');
         
         if ( isset($_POST['nickname']) ) {
-          $player  = get_page_by_title($_POST['nickname'], OBJECT, 'player');
+          $player  = new WP_Query([ 'posts_per_page' => 1, 'post_type' => 'player', 'title' => $_POST['nickname'] ]);
+          $player  = $player->post;
           $discord = get_field('discord_username', $player->ID);
           
           if ( $player ) {

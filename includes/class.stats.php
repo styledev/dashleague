@@ -1080,7 +1080,8 @@
           );
           
           foreach ($teams as $key => $team) {
-            $post = get_page_by_title($team, OBJECT, 'team');
+            $posts = new WP_Query([ 'posts_per_page' => 1, 'post_type' => 'team', 'title' => $team ]);
+            $post  = $posts->post;
             
             $index = $key+1;
             if ( $this->internal ) $team = "{$team}-{$index}";

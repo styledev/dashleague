@@ -175,9 +175,8 @@
         );
         
         if ( isset($_GET['team']) && !empty($_GET['team']) ) {
-          $post = get_page_by_title($_GET['team'], OBJECT, 'team');
-          
-          $team = $post ? new dlTeam($post) : FALSE;
+          $posts = new WP_Query([ 'posts_per_page' => 1, 'post_type' => 'team', 'title' => $_GET['team'] ]);
+          $team  = !empty($posts->post) ? new dlTeam($posts->post) : FALSE;
           
           return $team;
         }
