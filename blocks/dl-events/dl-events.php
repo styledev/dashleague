@@ -15,6 +15,9 @@
             foreach ($matches as $match) echo $match;
           echo '</div>';
         }
+        else {
+          printf('<div class="events__container event__container--%s alignwide" data-title="%s"><div class="event event--none">No Matches</div></div>', $slug, $title);
+        }
       }
     ?>
   </div>

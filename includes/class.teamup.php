@@ -79,6 +79,8 @@
         if ( strpos($user_tz, 'UTC') > -1 ) $user_tz = str_replace('UTC', '', $user_tz);
         
         foreach ($upcoming as $event) {
+          if ( empty($event->title) ) continue;
+          
           if ( strlen($event->start_dt) != 25 ) $event->start_dt .= '-04:00';
           
           $start = DateTime::createFromFormat("Y-m-d\TH:i:sT", $event->start_dt);
@@ -101,12 +103,12 @@
           else $link = sprintf('<button class="btn btn--ghost btn--none">%s</button>', ($diff->invert ? 'Not Casted' : 'May not be Casted'));
           
           $servers = isset($event->custom->servers) ? str_replace('_', ' ', implode(', ', $event->custom->servers)) : 'Not Specified';
+          
           $teams   = explode(' ', $event->title);
           
           $team_a      = new WP_Query([ 'posts_per_page' => 1, 'post_type' => 'team', 'title' => $teams[0] ]);
           $team_a      = $team_a->post;
           $team_a_logo = pxl::image($team_a, array( 'w' => 75, 'h' => 75, 'return' => 'tag' ));
-          
           $team_b      = new WP_Query([ 'posts_per_page' => 1, 'post_type' => 'team', 'title' => $teams[2] ]);
           $team_b      = $team_b->post;
           $team_b_logo = pxl::image($team_b, array( 'w' => 75, 'h' => 75, 'return' => 'tag' ));
