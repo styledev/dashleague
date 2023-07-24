@@ -377,8 +377,8 @@
           
           $tiers = [
             'walker'   => 1000,
-            'sprinter' => 1100,
-            'dasher'   => 1200,
+            'sprinter' => 1150,
+            'dasher'   => 1300,
           ];
           
           $base = $tiers[$tier];

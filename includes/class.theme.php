@@ -198,7 +198,7 @@
           printf('
               <table class="form-table">
                 <tr>
-                  <th><label for="discord">Discord w/Number</label></th>
+                  <th><label for="discord">Discord Username</label></th>
                   <td>
                     <input type="text" id="discord" name="discord" value="%s" class="regular-text" />
                   </td>
@@ -525,7 +525,7 @@
             $season['label'] = 'Cycle';
             $season['value'] = isset($weeks[$week]) ? $weeks[$week] : 'six';
             
-            $cycle = $numbers[$weeks[$week]];
+            $cycle = isset($weeks[$week]) ? $numbers[$weeks[$week]] : FALSE;
           }
           else if ( $date > $end && $date < $dates['quarterfinals_day_one'] ) {
             $diff = date_diff(date_create($date), date_create($dates['quarterfinals_day_one']));
@@ -637,7 +637,7 @@
           $form_fields = array(
             'profile' => array(
               'hr1' => array( 'priority' => 5, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => 'Contact Info<hr class="hr hr--thin"/>')),
-                'discord'     => array( 'priority' => 7, 'label' => 'Discord Name w/Number', 'description' => 'If you need this changed please contact a moderator.', 'attributes' => array('disabled' => TRUE)),
+                'discord'     => array( 'priority' => 7, 'label' => 'Discord Username', 'description' => 'If you need this changed please contact a moderator.', 'attributes' => array('disabled' => TRUE)),
               'hr2' => array( 'priority' => 8, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/>Player Info<hr class="hr hr--thin"/>')),
                 'nickname'     => array( 'priority' => 9, 'label' => 'Gamertag', 'description' => ($this->season_dates['locked_names'] ? 'Name changes are locked for the season' : ''), 'render_args' => array('control_before' => '<small>(i.e. handle, nickname, etc)</small>')),
                 'gamer_id'     => array( 'priority' => 9, 'label' => 'Hyper Dash Gamer ID', 'description' => ($this->season_dates['locked_names'] ? 'Gamer ID changes are locked for the season' : '<small><a href="/how-to-find-your-gamer-id/" target="_blank">How to find your Gamer ID</a></small>')),
@@ -650,7 +650,7 @@
             ),
             'register' => array(
               'hr1' => array( 'priority' => 5, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => 'Contact Info<hr class="hr hr--thin"/>')),
-                'discord'    => array( 'priority' => 7, 'label' => __('Discord Username'), 'description' => '', 'render_args' => array('control_before' => '<small>Must include number (e.g. JamesBond#0007)</small>')),
+                'discord'    => array( 'priority' => 7, 'label' => __('Discord Username'), 'description' => ''),
                 'user_email' => array( 'priority' => 7, 'label' => __('Email'), 'type' => 'email', 'id' => 'user_email', 'attributes' => array('maxlength' => 200)),
               'hr2' => array( 'priority' => 8, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/>Player Info<hr class="hr hr--thin"/>')),
                 'nickname'     => array( 'priority' => 8, 'label' => __('Gamertag'), 'render_args' => array('control_before' => '<small>(i.e. handle, nickname, etc)</small>')),
@@ -765,7 +765,7 @@
       public function tml_validate_form_fields( $errors ) {
         $this->tml_errors = $errors;
         
-        if ( empty($_POST['discord']) || !strpos($_POST['discord'], '#') ) $errors->add('discord', '<strong>Error</strong>: Please enter your discord name with number.');
+        if ( empty($_POST['discord']) ) $errors->add('discord', '<strong>Error</strong>: Please enter your discord username.');
         
         if ( empty($_POST['gamer_id']) ) $errors->add('gamer_id', '<strong>Error</strong>: Please enter your gamer id.');
         
@@ -779,7 +779,7 @@
           $discord = get_field('discord_username', $player->ID);
           
           if ( $player ) {
-            if ( $discord && $discord !== $_POST['discord'] ) $errors->add('nickname', '<strong>Error</strong>: The discord username you are trying to register does not match the player profile. Contact Styledev for help.');
+            if ( $discord && $discord !== $_POST['discord'] ) $errors->add('nickname', '<strong>Error</strong>: The Discord Username you are trying to register does not match the player profile. Contact Styledev for help.');
             else {
               global $wpdb;
               $sql = $wpdb->prepare("SELECT user_id FROM {$wpdb->prefix}usermeta WHERE meta_key = 'discord' AND meta_value = '%s'", $discord);

@@ -518,11 +518,15 @@
           $sql = $wpdb->prepare("
             SELECT r1.name, count(r1.matches) as Matches, sum(r1.wins) as wins,
               CASE 
-                WHEN tr.tier = 'dasher' THEN sum(r1.mmr) + 1200
-                WHEN tr.tier = 'sprinter' THEN sum(r1.mmr) + 1100
+                WHEN tr.tier = 'dasher' THEN sum(r1.mmr) + 1300
+                WHEN tr.tier = 'sprinter' THEN sum(r1.mmr) + 1150
                 ELSE sum(r1.mmr) + 1000
               END as mmr,
-              sum(r1.sr) + 1000 as sr
+              CASE 
+                WHEN tr.tier = 'dasher' THEN sum(r1.sr) + 1100
+                WHEN tr.tier = 'sprinter' THEN sum(r1.sr) + 1050
+                ELSE sum(r1.sr) + 1000
+              END as sr
             FROM (
               SELECT t1.name, t1.team_id, sum(t1.mmr) as mmr, sum(t1.rank_gain) as sr, count(DISTINCT t1.matchID) as matches, t2.wins
               FROM dl_teams AS t1
@@ -1025,6 +1029,7 @@
         }
       }
       private function game_players_sort( &$game ) {
+        // fns::put($game);
         foreach ($game['teams'] as $team => $data) {
           $score = array_column($data['players'], 'score');
           array_multisort($score, SORT_DESC, $data['players']);
@@ -1170,7 +1175,7 @@
             'd.name AS `Name`',
             'pl.seasons', 'pl.season_list',
             'SUBSTRING(MAX(CONCAT(d.id, d.team)), LENGTH(d.id) + 1) AS `Team`',
-            'ROUND(AVG(opp.mmr) / 100, 2) as `SOPP | Strength of Opponent`',
+            ($season < 5 ? 'ROUND(AVG(opp.rank_gain) / 100, 2) as `SOPP | Strength of Opponent`' : 'ROUND(AVG(opp.mmr) / 100, 2) as `SOPP | Strength of Opponent`'),
             "ROUND({$stats['time']}, 2) AS `TTP | Total Time Played`",
             "{$stats['maps']} AS `TMP | Total Maps Played`",
             "{$stats['outcome']} AS `Map Wins`",
@@ -1207,7 +1212,7 @@
             SELECT
             %1$s
             FROM %2$s as d
-            JOIN ( SELECT team_id, SUM(mmr) as mmr FROM dl_teams WHERE season = %4$d GROUP BY team_id ) AS opp ON d.opponent_id = opp.team_id
+            JOIN ( SELECT team_id, SUM(mmr) as mmr, SUM(rank_gain) as rank_gain FROM dl_teams WHERE season = %4$d GROUP BY team_id ) AS opp ON d.opponent_id = opp.team_id
             JOIN ( SELECT player_id, GROUP_CONCAT(DISTINCT season) as `season_list`, COUNT(DISTINCT season) as `seasons` FROM dl_players GROUP BY player_id ) AS pl ON d.player_id = pl.player_id
             JOIN (
               SELECT m.player_id, GROUP_CONCAT(DISTINCT m.type, \':\', m.maps, \':\', m.time, \':\', m.score, \':\', m.score_min) AS modes
@@ -1231,7 +1236,7 @@
           $season,
           $where_string
         );
-        
+        fns::error($sql);
         return $wpdb->get_results($sql, ARRAY_A);
       }
       public function stats_top( $limit = FALSE, $SOPP = FALSE ) {

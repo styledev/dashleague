@@ -249,11 +249,17 @@
           $join[] = $wpdb->prepare('JOIN dl_tiers AS tr1 ON t.team_id = tr1.team_id AND tr1.season = %d AND tr1.cycle = 1', $season);
           
           if ( $cycle['num'] == 1 ) {
-            $select[] = '1000 as sr';
             $select[] = "
               CASE
-                WHEN tr1.tier = 'dasher' THEN 1200
-                WHEN tr1.tier = 'sprinter' THEN 1100
+                WHEN tr1.tier = 'dasher' THEN 1100
+                WHEN tr1.tier = 'sprinter' THEN 1050
+                ELSE 1000
+              END as sr
+            ";
+            $select[] = "
+              CASE
+                WHEN tr1.tier = 'dasher' THEN 1300
+                WHEN tr1.tier = 'sprinter' THEN 1150
                 ELSE 1000
               END as mmr
             ";
@@ -263,13 +269,20 @@
             $start = DateTime::createFromFormat("Y-m-d H:i:s", "{$cycle['start']}");
             $start = $start->modify('+6 hour')->format('Y-m-d H:i:s');
             
-            $select[] = 'SUM(t.rank_gain) + 1000 as sr';
             $select[] = "
               CASE
-                WHEN tr1.tier = 'dasher' THEN SUM(t.mmr) + 1200
-                WHEN tr1.tier = 'sprinter' THEN SUM(t.mmr) + 1100
+                WHEN tr1.tier = 'dasher' THEN SUM(t.rank_gain) + 1100
+                WHEN tr1.tier = 'sprinter' THEN SUM(t.rank_gain) + 1050
+                ELSE SUM(t.rank_gain) + 1000
+              END as sr";
+              
+            $select[] = "
+              CASE
+                WHEN tr1.tier = 'dasher' THEN SUM(t.mmr) + 1300
+                WHEN tr1.tier = 'sprinter' THEN SUM(t.mmr) + 1150
                 ELSE SUM(t.mmr) + 1000
               END as mmr";
+              
             $order = 'sr DESC';
             $where .= $wpdb->prepare(' AND t.datetime <= %s', $start);
           }
@@ -280,14 +293,33 @@
           $select_string = implode(', ', $select);
           $join_string   = implode("\n", $join);
           
-          $sql = $wpdb->prepare("
-            SELECT {$select_string}
-            FROM dl_teams AS t
-            {$join_string}
-            WHERE t.season = %d AND t.team_id IN ({$teams}){$where}
-            GROUP BY tr1.name, tr1.cycle, tr1.tier
-            ORDER BY tr2.tier ASC, {$order}
-          ", $season);
+          if ( $cycle['num'] == 1 ) {
+            $sql = $wpdb->prepare("
+              SELECT tr1.name, tr1.cycle, tr1.tier as `tier`, tr1.tier as tier_prev,
+              CASE
+                WHEN tr1.tier = 'dasher' THEN 1100
+                WHEN tr1.tier = 'sprinter' THEN 1050
+                ELSE 1000
+              END as sr,
+              CASE
+                WHEN tr1.tier = 'dasher' THEN 1300
+                WHEN tr1.tier = 'sprinter' THEN 1150
+                ELSE 1000
+              END as mmr
+              FROM dl_tiers AS tr1
+              WHERE tr1.season = %d AND tr1.team_id IN ({$teams}){$where}
+            ", $season);
+          }
+          else {
+            $sql = $wpdb->prepare("
+              SELECT {$select_string}
+              FROM dl_teams AS t
+              {$join_string}
+              WHERE t.season = %d AND t.team_id IN ({$teams}){$where}
+              GROUP BY tr1.name, tr1.cycle, tr1.tier
+              ORDER BY tr2.tier ASC, {$order}
+            ", $season);
+          }
           
           $_items = $wpdb->get_results($sql, ARRAY_A);
           
@@ -302,17 +334,6 @@
                 $items[$key][] = $item->name;
               }
             }
-            // else if ( in_array('SUM(t.rank_gain) + 1000 as sr', $select) ) {
-            //   $items = array();
-            //
-            //   foreach ($_items as $item) {
-            //     $tier = $item['tier'];
-            //
-            //     if ( !isset($items[$tier]) ) $items[$tier] = array();
-            //
-            //     $items[$tier][] = $item;
-            //   }
-            // }
             else {
               $items = array();
               
@@ -401,24 +422,30 @@
         $teams_ids = $teams ? implode(', ', array_keys($teams)) : [];
         
         $breakdown = [
-          'dasher'   => count($current['dasher']),
-          'sprinter' => count($current['sprinter']),
-          'walker'   => count($current['sprinter']),
+          'dasher'   => isset($current['dasher']) ? count($current['dasher']) : 0,
+          'sprinter' => isset($current['sprinter']) ? count($current['sprinter']) : 0,
+          'walker'   => isset($current['walker']) ? count($current['walker']) : 0,
         ];
+        
+        $order = $cycle['num'] == 6 ? 'ORDER BY sr DESC' : 'ORDER BY mmr DESC';
         
         $teams_sql = $wpdb->prepare(
           'SELECT tm.name, tm.team_id,
             CASE 
-              WHEN tr.tier = "dasher" THEN sum(tm.mmr) + 1200
-              WHEN tr.tier = "sprinter" THEN sum(tm.mmr) + 1100
+              WHEN tr.tier = "dasher" THEN sum(tm.mmr) + 1300
+              WHEN tr.tier = "sprinter" THEN sum(tm.mmr) + 1150
               ELSE sum(tm.mmr) + 1000
             END as mmr,
-            sum(tm.rank_gain) + 1000 as sr
+            CASE 
+              WHEN tr.tier = "dasher" THEN sum(tm.rank_gain) + 1100
+              WHEN tr.tier = "sprinter" THEN sum(tm.rank_gain) + 1050
+              ELSE sum(tm.rank_gain) + 1000
+            END as sr
            FROM dl_teams AS tm
            JOIN dl_tiers AS tr ON tm.team_id = tr.team_id AND tr.season = %d AND tr.cycle = 1
            WHERE tm.season = %d AND tm.datetime <= "%s" AND tm.team_id IN ('.$teams_ids.')
            GROUP BY tm.name
-           ORDER BY mmr DESC
+           '.$order.'
           ',
           $pxl->season['number'],
           $pxl->season['number'],
@@ -451,13 +478,12 @@
         $response = array('status' => 'success');
         
         $dates = array(
-          'start' => "{$_POST['dateStart']} 00:00:00",
-          'end'   => "{$_POST['dateEnd']} 23:59:59",
+          'start' => isset($_POST['dateStart']) ? "{$_POST['dateStart']} 00:00:00" : NULL,
+          'end'   => isset($_POST['dateEnd']) ? "{$_POST['dateEnd']} 23:59:59" : NULL,
         );
         
         if ( isset($_POST['tiers']) ) {
-          $tiers = $_POST['tiers'];
-          
+          $tiers  = $_POST['tiers'];
           $cycles = [[ 'num' => 0 ]];
           $cycle  = array_pop($cycles);
         }

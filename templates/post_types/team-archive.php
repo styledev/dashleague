@@ -57,9 +57,24 @@
     </div>
   </div>
   <div class="alignwide">
-    <div class="grid grid--full">
-      <?php pxl::loop('team-players'); ?>
-    </div>
+    <?php if ( $global['teams'] ) : ?>
+      <div class="grid grid--full">
+        <?php pxl::loop('team-players'); ?>
+      </div>
+    <?php else: ?>
+      <br><br>
+      <div>
+        <div style="text-align:center;">
+          <strong>Season <?php echo $pxl->season['number']; ?></strong>
+          <br>
+          Team Registration ends <?php echo $pxl->season_dates['team_cut-off'] ?>
+          <br><br>
+          <a href="/team-registration/" class="btn btn--blue-light">Register your Team</a>
+          <br><br>
+          <em><i>To view past season's teams click the season number above.</i></em>
+        </div>
+      </div>
+    <?php endif; ?>
   </div>
   <?php pxl::paginate(); ?>
 </div>

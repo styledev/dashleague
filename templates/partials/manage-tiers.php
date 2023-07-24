@@ -21,6 +21,7 @@
   $cycle   = $cycles[array_key_last($cycles)];
   $current = $pxl->api->data_tiers(array('cycle' => $cycle['num'], 'mmr' => TRUE));
   $tiers   = $pxl->api->tool_tiers($cycle, $current);
+  $next    = $cycle['num'] < 6 ? $cycle['num'] + 1 : FALSE;
 ?>
 <style>
   select{width:100%;}
@@ -67,23 +68,25 @@
         <tbody>
           <tr>
             <?php
-              foreach ($current as $tier => $tier_teams) {
-                echo '<td>';
-                foreach ($tier_teams as $team) {
-                  printf(
-                    '
-                      <div class="cols">
-                        <span>%s</span>
-                        <span>%s</span>
-                        <span>%s</span>
-                      </div>
-                    ',
-                    $team['name'],
-                    $team['mmr'],
-                    $team['sr']
-                  );
+              if ( $current ) {
+                foreach ($current as $tier => $tier_teams) {
+                  echo '<td>';
+                  foreach ($tier_teams as $team) {
+                    printf(
+                      '
+                        <div class="cols">
+                          <span>%s</span>
+                          <span>%s</span>
+                          <span>%s</span>
+                        </div>
+                      ',
+                      $team['name'],
+                      $team['mmr'],
+                      $team['sr']
+                    );
+                  }
+                  echo '</td>';
                 }
-                echo '</td>';
               }
             ?>
           </tr>
@@ -95,7 +98,12 @@
 <div class="wp-block-group alignfull">
   <div class="wp-block-group__inner-container">
     <div class="tml alignwide">
-      <h5>New Tiers for Cycle <?php echo $cycle['num'] + 1 ?></h5>
+      <h5>
+        <?php
+          if ( $next && $next <= 6 ) printf('New Tiers for Cycle %s', $next);
+          else echo 'Playoff Seeding';
+        ?>
+      </h5>
       <form class="tml inline" method="POST" data-init="init" data-endpoint="tool/tiers" data-confirm="true" novalidate="novalidate" accept-charset="utf-8">
         <div class="tml-alerts"><ul class="tml-messages"></ul></div>
         
@@ -111,7 +119,10 @@
         
         <div class="tml-field-wrap tml-submit-wrap">
           <button name="submit" type="submit" class="tml-button btn--small">
-            Generate Cycle <?php echo $cycle['num'] + 1 ?> Tiers
+            <?php
+              if ( $next && $next < 6 ) printf('Generate Cycle %s Tiers', $next);
+              else echo "Generate Playoff Seeding";
+            ?>
           </button>
         </div>
         
