@@ -26,7 +26,7 @@
   )), 'post_title', 'ID');
   
   $gamerids_players = array_column($wpdb->get_results("
-    SELECT pm.meta_value as gamer_id, p.id as player
+    SELECT LOWER(pm.meta_value) as gamer_id, p.id as player
     FROM {$wpdb->prefix}posts AS p
     JOIN {$wpdb->prefix}postmeta AS pm ON p.id = pm.post_id AND pm.meta_key LIKE 'gamer_i%' AND pm.meta_value != ''
   ", ARRAY_A), 'player', 'gamer_id');
@@ -109,7 +109,10 @@
               $player_id = FALSE;
               $status    = '';
               
-              if ( empty($player['record']['gamer_ids']) ) {
+              if ( !$player['record']['id'] ) {
+                $status = 'Player Not Found';
+              }
+              else if ( empty($player['record']['gamer_ids']) ) {
                 $status = 'Adding Gamer ID';
                 update_field('gamer_id', $player['gamer_id'], $player['record']['id']);
               }
