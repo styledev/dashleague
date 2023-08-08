@@ -427,6 +427,15 @@
           'walker'   => isset($current['walker']) ? count($current['walker']) : 0,
         ];
         
+        if ( count($teams)%3 === 0 ) {
+          $even = count($teams)/3;
+          $breakdown = [
+            'dasher'   => $even,
+            'sprinter' => $even,
+            'walker'   => $even,
+          ];
+        }
+        
         $order = $cycle['num'] == 6 ? 'ORDER BY sr DESC' : 'ORDER BY mmr DESC';
         
         $teams_sql = $wpdb->prepare(

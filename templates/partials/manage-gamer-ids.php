@@ -29,6 +29,7 @@
     SELECT LOWER(pm.meta_value) as gamer_id, p.id as player
     FROM {$wpdb->prefix}posts AS p
     JOIN {$wpdb->prefix}postmeta AS pm ON p.id = pm.post_id AND pm.meta_key LIKE 'gamer_i%' AND pm.meta_value != ''
+    WHERE p.post_status = 'publish'
   ", ARRAY_A), 'player', 'gamer_id');
   
   $query = [];
