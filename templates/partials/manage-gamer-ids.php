@@ -94,11 +94,11 @@
             <th>Tag</th>
             <th>Name</th>
             <th>Status</th>
+            <th>Gamer ID</th>
+            <th>Gamer IDs</th>
+            <th>Gamer IDs #</th>
             <th>Matches Played</th>
             <th>Matches</th>
-            <th>#</th>
-            <th>IDs</th>
-            <th>ID Played</th>
           </tr>
         </thead>
         <tbody>
@@ -115,7 +115,7 @@
                 update_field('gamer_id', $player['gamer_id'], $player['record']['id']);
               }
               else if ( !in_array($player['gamer_id'], $player['record']['gamer_ids']) ) {
-                $status = 'Gamer ID Doesn\'t Match';
+                $status = sprintf('<a href="%s&gamer_id=%s" class="btn btn--small btn--ghost" target="_blank">Fix Gamer ID</button>', admin_url("post.php?post={$player['record']['id']}&action=edit"), $player['gamer_id']);
               }
               else if ( !$player['record']['team'] ) {
                 $status = 'Not Rostered';
@@ -129,10 +129,10 @@
                   <td><a href="%s" target="_blank">%s</a></td>
                   <td><a href="%s" target="_blank">%s</a></td>
                   <td>%s</td>
-                  <td>%d</td>
+                  <td>%s</td>
                   <td>%s</td>
                   <td>%dx</td>
-                  <td>%s</td>
+                  <td>%d</td>
                   <td>%s</td>
                 </tr>',
                 admin_url("post.php?post={$_teams[$player['tag']]}&action=edit"),
@@ -140,11 +140,11 @@
                 admin_url("post.php?post={$player['record']['id']}&action=edit"),
                 $player['name'],
                 $status,
+                $player['gamer_id'],
+                implode("<br>", $player['record']['gamer_ids']),
+                count($player['record']['gamer_ids']),
                 count($player['matches']),
                 implode('<br>', $player['matches']),
-                count($player['record']['gamer_ids']),
-                implode("<br>", $player['record']['gamer_ids']),
-                $player['gamer_id']
               );
             }
           ?>
@@ -170,29 +170,6 @@
         <div class="tml-field-wrap tml-submit-wrap">
           <button name="submit" type="submit" class="tml-button btn--small">
             Change Name
-          </button>
-        </div>
-      </form>
-    </div>
-    <div class="tml alignwide">
-      <br>
-      <form class="tml inline" method="POST" data-init="init" data-endpoint="stats/gamer" data-callback="reload" data-confirm="true" novalidate="novalidate" accept-charset="utf-8">
-        <div class="tml-alerts"><ul class="tml-messages"></ul></div>
-        <div class="tml-field-wrap">
-          <label class="tml-label" for="tag">Name</label>
-          <input class="tml-field nofill" type="text" name="name" value="" id="tag" required>
-        </div>
-        <div class="tml-field-wrap">
-          <label class="tml-label" for="name_current">Gamer ID</label>
-          <input class="tml-field nofill" type="text" name="gamerid_current" value="" id="gamerid_current" required>
-        </div>
-        <div class="tml-field-wrap">
-          <label class="tml-label" for="name_corrected">Correction</label>
-          <input class="tml-field" type="text" name="gamerid_corrected" value="" id="gamerid_corrected" required>
-        </div>
-        <div class="tml-field-wrap tml-submit-wrap">
-          <button name="submit" type="submit" class="tml-button btn--small">
-            Update Gamer ID
           </button>
         </div>
       </form>

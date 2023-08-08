@@ -375,6 +375,7 @@
         add_filter('acf/fields/relationship/query/key=field_5faebcd5757cf', array($this, 'filter_acf_fields_relationship_query'), 20, 3);
         add_filter('acf/fields/relationship/query/key=field_5fb1e370c7545', array($this, 'filter_acf_fields_relationship_query'), 20, 3);
         add_filter('acf/load_value/key=field_60c6b9c8f832d', array($this, 'filter_acf_load_value_discord_username'), 20, 3);
+        add_filter('acf/load_value/key=field_63a241dd6d4ca', array($this, 'filter_acf_load_value_gamer_id'), 20, 3);
         add_filter('lostpassword_errors', array($this, 'tml_wp_login_errors'));
         add_filter('pxl_template', array($this, 'filter_pxl_template'), 20, 2);
         add_filter('pxl_wrap', array($this, 'filter_pxl_wrap'), 10, 4);
@@ -409,6 +410,13 @@
       public function filter_acf_load_value_discord_username( $value, $post_id, $field ) {
         if ( isset($_REQUEST['discord_username']) ) {
           $value = $_REQUEST['discord_username'];
+        }
+        
+        return $value;
+      }
+      public function filter_acf_load_value_gamer_id( $value, $post_id, $field ) {
+        if ( isset($_REQUEST['gamer_id']) ) {
+          $value = $_REQUEST['gamer_id'];
         }
         
         return $value;
