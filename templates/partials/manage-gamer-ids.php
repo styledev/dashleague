@@ -27,9 +27,8 @@
   
   $gamerids_players = array_column($wpdb->get_results("
     SELECT pm.meta_value as gamer_id, p.id as player
-    FROM {$wpdb->prefix}postmeta AS pm
-    JOIN {$wpdb->prefix}posts AS p ON p.id = pm.post_id
-    WHERE pm.meta_key LIKE 'gamer_ids_%'
+    FROM {$wpdb->prefix}posts AS p
+    JOIN {$wpdb->prefix}postmeta AS pm ON p.id = pm.post_id AND pm.meta_key LIKE 'gamer_i%' AND pm.meta_value != ''
   ", ARRAY_A), 'player', 'gamer_id');
   
   $query = [];
@@ -62,7 +61,7 @@
                 'id'        => $player_id,
                 'name'      => $competitor,
                 'matched'   => strtolower($competitor) == strtolower($player->name),
-                'gamer_ids' => array_unique(array_filter(array(get_field('gamer_id', $player_id), get_field('gamer_id_alt', $player_id)))),
+                'gamer_ids' => $player_id ? array_unique(array_filter(array(get_field('gamer_id', $player_id), get_field('gamer_id_alt', $player_id)))) : [],
                 'team'      => $team && in_array($player_id, $team) ? $player->tag : FALSE,
                 'team_id'   => $team && in_array($player_id, $team) ? $_teams[$player->tag] : FALSE,
                 'rostered'  => $team && in_array($player_id, $team),
