@@ -1,12 +1,36 @@
 <?php
+  global $wpdb;
+  
   wp_enqueue_script('api');
   
-  $competitors = array_change_key_case(array_column(get_posts(array(
+  $_teams = array_column(get_posts([
+    'order'          => 'ASC',
+    'orderby'        => 'post_title',
+    'posts_per_page' => -1,
+    'post_type'      => 'team',
+    'tax_query'      => [ [ 'taxonomy' => 'season', 'field' => 'slug', 'terms' => 'current', ] ]
+  ]), 'ID', 'post_title');
+  
+  $teams = [];
+  foreach ($_teams as $_team => $team_id) {
+    $players = array_column(get_field('players', $team_id), 'ID');
+    $teams[$_team] = $players;
+  }
+  
+  $competitors = array_column(get_posts(array(
     'post_type'      => 'player',
     'posts_per_page' => -1,
     'orderby'        => 'title',
     'order'          => 'ASC',
-  )), 'ID', 'post_title'), CASE_LOWER);
+    'tax_query'      => [ [ 'taxonomy' => 'season', 'field' => 'slug', 'terms' => 'current', ] ]
+  )), 'post_title', 'ID');
+  
+  $gamerids_players = array_column($wpdb->get_results("
+    SELECT pm.meta_value as gamer_id, p.id as player
+    FROM {$wpdb->prefix}postmeta AS pm
+    JOIN {$wpdb->prefix}posts AS p ON p.id = pm.post_id
+    WHERE pm.meta_key LIKE 'gamer_ids_%'
+  ", ARRAY_A), 'player', 'gamer_id');
   
   $query = [];
   
@@ -26,15 +50,25 @@
         
         foreach ($players as $player) {
           if ( !isset($player_ids[$player->name]) ) {
+            $player_id  = isset($gamerids_players[$player->id]) ? $gamerids_players[$player->id] : FALSE;
+            $competitor = $player_id && isset($competitors[$player_id]) ? $competitors[$player_id] : FALSE;
+            $team       = isset($teams[$player->tag]) ? $teams[$player->tag] : FALSE;
+            
             $player_ids[$player->name] = array(
-              'tag'  => $player->tag,
-              'name' => $player->name,
-              'ids' => array()
+              'tag'        => $player->tag,
+              'name'       => $player->name,
+              'gamer_id'   => $player->id,
+              'record' => [
+                'id'        => $player_id,
+                'name'      => $competitor,
+                'matched'   => strtolower($competitor) == strtolower($player->name),
+                'gamer_ids' => array_unique(array_filter(array(get_field('gamer_id', $player_id), get_field('gamer_id_alt', $player_id)))),
+                'team'      => $team && in_array($player_id, $team) ? $player->tag : FALSE,
+                'team_id'   => $team && in_array($player_id, $team) ? $_teams[$player->tag] : FALSE,
+                'rostered'  => $team && in_array($player_id, $team),
+              ]
             );
           }
-          
-          $player_ids[$player->name]['ids'][] = $player->id;
-          $player_ids[$player->name]['ids'] = array_unique($player_ids[$player->name]['ids']);
           
           $games = array_values($match['games']);
           $player_ids[$player->name]['matches'][] = $games[0]['matchID'];
@@ -53,7 +87,7 @@
 
 <div class="wp-block-group alignfull">
   <div class="wp-block-group__inner-container">
-    <div class="list alignwide">
+    <div class="list alignfull">
       <table>
         <thead>
           <tr>
@@ -64,12 +98,11 @@
             <th>Matches</th>
             <th>#</th>
             <th>IDs</th>
+            <th>ID Played</th>
           </tr>
         </thead>
         <tbody>
           <?php
-            global $wpdb;
-            
             ksort($player_ids);
             fns::array_sortBy('tag', $player_ids);
             
@@ -77,39 +110,42 @@
               $player_id = FALSE;
               $status    = '';
               
-              foreach ($player['ids'] as $id) {
-                $player_id = $wpdb->get_var($wpdb->prepare("
-                  SELECT p.id
-                  FROM {$wpdb->prefix}postmeta AS pm
-                  JOIN {$wpdb->prefix}posts AS p ON p.id = pm.post_id
-                  WHERE pm.meta_value = '%s' AND p.post_title = '%s'
-                ", $id, $player['name']));
+              if ( empty($player['record']['gamer_ids']) ) {
+                $status = 'Adding Gamer ID';
+                update_field('gamer_id', $player['gamer_id'], $player['record']['id']);
               }
-              
-              if ( !$player_id ) {
-                $player_name = strtolower($player['name']);
-                $player_id   = isset($competitors[$player_name]) ? $competitors[$player_name] : FALSE;
-                
-                if ( $player_id ) {
-                  $player_gamer_ids = array();
-                  foreach ($player['ids'] as $id) $player_gamer_ids[] = array('field_60f8add53e5be' => $id);
-                  update_field('gamer_ids', $player_gamer_ids, $player_id);
-                  $status = 'Saved';
-                }
-                else $status = sprintf('No Match <button class="btn btn--small btn--ghost" data-data=\'%s\'>Change</button>', json_encode($player, JSON_HEX_APOS));
+              else if ( !in_array($player['gamer_id'], $player['record']['gamer_ids']) ) {
+                $status = 'Gamer ID Doesn\'t Match';
+              }
+              else if ( !$player['record']['team'] ) {
+                $status = 'Not Rostered';
+              }
+              else if ( !$player['record']['matched'] ) {
+                $status = sprintf('<button class="btn btn--small btn--ghost" data-data=\'%s\'>Fix Name: %s</button>', json_encode($player, JSON_HEX_APOS), $player['record']['name']);
               }
               
               printf('
                 <tr>
-                  <td><a href="/teams/%s" target="_blank">%1$s</a></td>
-                  <td>%s</td>
+                  <td><a href="%s" target="_blank">%s</a></td>
+                  <td><a href="%s" target="_blank">%s</a></td>
                   <td>%s</td>
                   <td>%d</td>
                   <td>%s</td>
                   <td>%dx</td>
                   <td>%s</td>
-                </tr>
-              ', $player['tag'], $player['name'], $status, count($player['matches']), implode('<br>', $player['matches']), count($player['ids']), implode("<br>", $player['ids']));
+                  <td>%s</td>
+                </tr>',
+                admin_url("post.php?post={$_teams[$player['tag']]}&action=edit"),
+                $player['tag'],
+                admin_url("post.php?post={$player['record']['id']}&action=edit"),
+                $player['name'],
+                $status,
+                count($player['matches']),
+                implode('<br>', $player['matches']),
+                count($player['record']['gamer_ids']),
+                implode("<br>", $player['record']['gamer_ids']),
+                $player['gamer_id']
+              );
             }
           ?>
         </tbody>
@@ -138,6 +174,29 @@
         </div>
       </form>
     </div>
+    <div class="tml alignwide">
+      <br>
+      <form class="tml inline" method="POST" data-init="init" data-endpoint="stats/gamer" data-callback="reload" data-confirm="true" novalidate="novalidate" accept-charset="utf-8">
+        <div class="tml-alerts"><ul class="tml-messages"></ul></div>
+        <div class="tml-field-wrap">
+          <label class="tml-label" for="tag">Name</label>
+          <input class="tml-field nofill" type="text" name="name" value="" id="tag" required>
+        </div>
+        <div class="tml-field-wrap">
+          <label class="tml-label" for="name_current">Gamer ID</label>
+          <input class="tml-field nofill" type="text" name="gamerid_current" value="" id="gamerid_current" required>
+        </div>
+        <div class="tml-field-wrap">
+          <label class="tml-label" for="name_corrected">Correction</label>
+          <input class="tml-field" type="text" name="gamerid_corrected" value="" id="gamerid_corrected" required>
+        </div>
+        <div class="tml-field-wrap tml-submit-wrap">
+          <button name="submit" type="submit" class="tml-button btn--small">
+            Update Gamer ID
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
   <script>
     var gi;
@@ -154,9 +213,11 @@
         if ( e.target.tagName === 'BUTTON' ) {
           var data = JSON.parse(e.target.dataset.data);
           tag.value = data.tag;
+          console.log(data);
           name_current.value = data.name;
           gi.el.$form.scrollIntoView();
-          name_corrected.focus();
+          // name_corrected.focus();
+          name_corrected.value = data.record.name
         }
       })
     });

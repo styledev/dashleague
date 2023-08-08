@@ -6,7 +6,7 @@
       
       $this->init();
     }
-      
+    
     // Player Details
       public function init() {
         $this->get_team();
