@@ -5,7 +5,7 @@
       
       $this->calendars = array( 'matches' => 'kst2y7dkgo3npmnz8m' );
       
-      $this->cache = 60 * 30;
+      $this->cache = 60 * 10;
       $this->key   = '1d0bef59e9fe74044578cf72936fe209c526be2805c2c533e81cf887af2feb9d';
       $this->url   = 'https://api.teamup.com/';
     }
