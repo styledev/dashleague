@@ -48,6 +48,7 @@
           <label class="tml-label" for="forfeit_type">Forfeit Type (Match/Map)</label>
           <select name="forfeit_type" id="forfeit_type">
             <option value="match">Match</option>
+            <option value="map">Map</option>
             <option value="double-forfeit">Double Forfeit</option>
             <?php foreach ($matchIDs as $matchID) printf('<option value="%1$s">%1$s</option>', $matchID); ?>
           </select>
@@ -115,7 +116,7 @@
       
       jQuery('.teams option').prop('disabled', false).prop('hidden', false);
       
-      if ( value == 'match' || value == 'double-forfeit' ) {
+      if ( value == 'match' || value == 'double-forfeit' || value == 'map' ) {
         el.forfeit_date.value = '';
         el.forfeit_date.readOnly = false;
         el.team_forfeit.value = '';

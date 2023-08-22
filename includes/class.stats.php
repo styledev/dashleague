@@ -105,7 +105,7 @@
         $teams['opponent']['vs'] = $teams['forfeit']['team'];
         
         $forfeit_type = $_POST['forfeit_type'];
-        $matchID      = in_array($forfeit_type, array('match', 'double-forfeit')) ? "{$_POST['forfeit_date']}={$teams['forfeit']['team']->post_title}<>{$teams['opponent']['team']->post_title}" : $forfeit_type;
+        $matchID      = in_array($forfeit_type, array('match', 'map', 'double-forfeit')) ? "{$_POST['forfeit_date']}={$teams['forfeit']['team']->post_title}<>{$teams['opponent']['team']->post_title}" : $forfeit_type;
         $datetime     = DateTime::createFromFormat("Ymd H:i", "{$_POST['forfeit_date']} 23:59");
         
         switch ($forfeit_type) {
