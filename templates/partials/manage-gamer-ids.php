@@ -55,7 +55,7 @@
         $players = array_merge($colors['red'], $colors['blue']);
         
         foreach ($players as $player) {
-          if ( !isset($player_ids[$player->id]) ) {
+          if ( !isset($player_ids[$player->name]) ) {
             $player_id = isset($gamerids_players[$player->id]) ? $gamerids_players[$player->id] : FALSE;
             
             if ( !$player_id ) {
@@ -68,10 +68,11 @@
             $competitor = $player_id && isset($competitors[$player_id]) ? $competitors[$player_id] : FALSE;
             $team       = isset($teams[$player->tag]) ? $teams[$player->tag] : FALSE;
             
-            $player_ids[$player->id] = array(
+            $player_ids[$player->name] = array(
               'tag'        => $player->tag,
               'name'       => $player->name,
               'gamer_id'   => $player->id,
+              'gamer_ids'  => [],
               'record' => [
                 'id'        => $player_id,
                 'name'      => $competitor,
@@ -82,11 +83,18 @@
                 'rostered'  => $team && in_array($player_id, $team),
               ]
             );
+            
+            sort($player_ids[$player->name]['record']['gamer_ids']);
           }
           
           $games = array_values($match['games']);
-          $player_ids[$player->id]['matches'][] = $games[0]['matchID'];
-          $player_ids[$player->id]['matches'] = array_unique($player_ids[$player->id]['matches']);
+          $player_ids[$player->name]['gamer_ids'][] = $player->id;
+          $player_ids[$player->name]['gamer_ids']   = array_unique($player_ids[$player->name]['gamer_ids']);
+          
+          sort($player_ids[$player->name]['gamer_ids']);
+          
+          $player_ids[$player->name]['matches'][]   = $games[0]['matchID'];
+          $player_ids[$player->name]['matches']     = array_unique($player_ids[$player->name]['matches']);
         }
       }
     }
@@ -132,6 +140,9 @@
                 $status = 'Adding Gamer ID';
                 update_field('gamer_id', $player['gamer_id'], $player['record']['id']);
               }
+              else if ( count($player['gamer_ids']) == count($player['record']['gamer_ids']) && $player['gamer_ids'] != $player['record']['gamer_ids'] ) {
+                $status = sprintf('<a href="%s&gamer_id=%s" class="btn btn--small btn--ghost" target="_blank">Fix Gamer ID</button>', admin_url("post.php?post={$player['record']['id']}&action=edit"), $player['gamer_id']);
+              }
               else if ( !in_array($player['gamer_id'], $player['record']['gamer_ids']) ) {
                 $status = sprintf('<a href="%s&gamer_id=%s" class="btn btn--small btn--ghost" target="_blank">Fix Gamer ID</button>', admin_url("post.php?post={$player['record']['id']}&action=edit"), $player['gamer_id']);
               }
@@ -158,7 +169,7 @@
                 admin_url("post.php?post={$player['record']['id']}&action=edit"),
                 $player['name'],
                 $status,
-                $player['gamer_id'],
+                implode("<br>", $player['gamer_ids']),
                 implode("<br>", $player['record']['gamer_ids']),
                 count($player['record']['gamer_ids']),
                 count($player['matches']),
