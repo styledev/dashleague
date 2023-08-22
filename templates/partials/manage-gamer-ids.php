@@ -22,7 +22,7 @@
     'posts_per_page' => -1,
     'orderby'        => 'title',
     'order'          => 'ASC',
-    'tax_query'      => [ [ 'taxonomy' => 'season', 'field' => 'slug', 'terms' => 'current', ] ]
+    'tax_query'      => [ [ 'taxonomy' => 'season', 'field' => 'slug', 'terms' => 'current' ] ]
   )), 'post_title', 'ID');
   
   $gamerids_players = array_column($wpdb->get_results("
@@ -31,6 +31,12 @@
     JOIN {$wpdb->prefix}postmeta AS pm ON p.id = pm.post_id AND pm.meta_key LIKE 'gamer_i%' AND pm.meta_value != ''
     WHERE p.post_status = 'publish'
   ", ARRAY_A), 'player', 'gamer_id');
+  
+  $gamerids_partial = [];
+  foreach ($gamerids_players as $gamer_id => $post_id) {
+    $gamer_id = explode('-', $gamer_id);
+    $gamerids_partial[$gamer_id[0]] = $post_id;
+  }
   
   $query = [];
   
@@ -50,7 +56,15 @@
         
         foreach ($players as $player) {
           if ( !isset($player_ids[$player->name]) ) {
-            $player_id  = isset($gamerids_players[$player->id]) ? $gamerids_players[$player->id] : FALSE;
+            $player_id = isset($gamerids_players[$player->id]) ? $gamerids_players[$player->id] : FALSE;
+            
+            if ( !$player_id ) {
+              $gamer_id = explode('-', $player->id);
+              $player_id = isset($gamerids_partial[$gamer_id[0]]) ? $gamerids_partial[$gamer_id[0]] : FALSE;
+            }
+            
+            if ( !$player_id ) $player_id = array_search($player->name, $competitors);
+            
             $competitor = $player_id && isset($competitors[$player_id]) ? $competitors[$player_id] : FALSE;
             $team       = isset($teams[$player->tag]) ? $teams[$player->tag] : FALSE;
             
