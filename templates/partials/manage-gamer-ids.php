@@ -55,7 +55,7 @@
         $players = array_merge($colors['red'], $colors['blue']);
         
         foreach ($players as $player) {
-          if ( !isset($player_ids[$player->name]) ) {
+          if ( !isset($player_ids[$player->id]) ) {
             $player_id = isset($gamerids_players[$player->id]) ? $gamerids_players[$player->id] : FALSE;
             
             if ( !$player_id ) {
@@ -68,7 +68,7 @@
             $competitor = $player_id && isset($competitors[$player_id]) ? $competitors[$player_id] : FALSE;
             $team       = isset($teams[$player->tag]) ? $teams[$player->tag] : FALSE;
             
-            $player_ids[$player->name] = array(
+            $player_ids[$player->id] = array(
               'tag'        => $player->tag,
               'name'       => $player->name,
               'gamer_id'   => $player->id,
@@ -85,8 +85,8 @@
           }
           
           $games = array_values($match['games']);
-          $player_ids[$player->name]['matches'][] = $games[0]['matchID'];
-          $player_ids[$player->name]['matches'] = array_unique($player_ids[$player->name]['matches']);
+          $player_ids[$player->id]['matches'][] = $games[0]['matchID'];
+          $player_ids[$player->id]['matches'] = array_unique($player_ids[$player->id]['matches']);
         }
       }
     }
@@ -118,6 +118,7 @@
         <tbody>
           <?php
             ksort($player_ids);
+            fns::array_sortBy('name', $player_ids);
             fns::array_sortBy('tag', $player_ids);
             
             foreach ($player_ids as $player) {
