@@ -1217,7 +1217,8 @@
             JOIN (
               SELECT m.player_id, GROUP_CONCAT(DISTINCT m.type, \':\', m.maps, \':\', m.time, \':\', m.score, \':\', m.score_min) AS modes
               FROM (
-                SELECT d.player_id, GROUP_CONCAT(DISTINCT season) as `seasons`, m.meta_value AS `type`, count(m.meta_value) as `maps`, (SUM(TIME_TO_SEC(d.time)) / 60) as `time`, SUM(d.score) as `score`, ROUND(SUM(d.score) / (SUM(TIME_TO_SEC(d.time)) / 60), 2) as `score_min`
+                SELECT d.player_id, GROUP_CONCAT(DISTINCT season) as `seasons`, m.meta_value AS `type`, count(m.meta_value) as `maps`, (SUM(TIME_TO_SEC(d.time)) / 60) as `time`, SUM(d.score) as `score`,
+                CASE WHEN d.time = 0 THEN 0 ELSE ROUND(SUM(d.score) / (SUM(TIME_TO_SEC(d.time)) / 60), 2) END as `score_min`
                 FROM dl_players as d
                 JOIN wp_zoe0kio31p_postmeta AS m ON d.map_id = m.post_id AND m.meta_key = \'mode\'
                 %3$s
@@ -1236,7 +1237,7 @@
           $season,
           $where_string
         );
-        fns::error($sql);
+        // fns::error($sql);
         return $wpdb->get_results($sql, ARRAY_A);
       }
       public function stats_top( $limit = FALSE, $SOPP = FALSE ) {
