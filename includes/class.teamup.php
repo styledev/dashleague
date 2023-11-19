@@ -1,5 +1,6 @@
 <?php if ( !class_exists('teamup') ) {
   class teamup {
+    public $cache, $calendars, $key, $url, $teamup;
     function __construct() {
       // https://apidocs.teamup.com/#teamup-api-overview
       

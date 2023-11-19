@@ -1,5 +1,6 @@
 <?php if ( !class_exists('dlPlayer') ) {
   class dlPlayer {
+    public $active, $captain, $discord, $id, $matches, $stats, $server, $team, $user;
     function __construct( $player = FALSE ) {
       $this->id = $player ? $player->ID : get_the_ID();
       $this->discord = get_field('discord_username', $this->id);
@@ -10,6 +11,7 @@
     // Player Details
       public function init() {
         $this->get_team();
+        $this->get_user();
       }
       
     // Helpers
@@ -17,6 +19,19 @@
         global $wpdb;
         
         $this->matches = $wpdb->get_results($wpdb->prepare("SELECT * FROM dl_players WHERE player_id = %d ORDER BY datetime DESC", $this->id));
+      }
+      public function get_stats() {
+        if ( !isset($this->matches) ) $this->get_matches();
+        
+        $this->stats = array(
+          'kills'  => array_sum(array_column($this->matches, 'kills')),
+          'deaths' => array_sum(array_column($this->matches, 'deaths')),
+          'score'  => array_sum(array_column($this->matches, 'score')),
+          'wins'   => array_sum(array_column($this->matches, 'outcome')),
+          'time'   => 0,
+        );
+        
+        $this->stats['kd'] = $this->stats['deaths'] > 0 ? round($this->stats['kills'] / $this->stats['deaths'], 2) : 'N/A';
       }
       public function get_team() {
         $teams = get_posts(array(
@@ -34,18 +49,18 @@
         $this->active  = isset($this->team->roster['players'][$this->discord]);
         $this->captain = isset($this->team->captains['players'][$this->discord]);
       }
-      public function get_stats() {
-        if ( !isset($this->matches) ) $this->get_matches();
+      public function get_user() {
+        $users = get_users(array(
+          'meta_query' => array(
+            array(
+              'key'     => 'discord',
+              'value'   => $this->discord,
+            )
+          )
+        ));
         
-        $this->stats = array(
-          'kills'  => array_sum(array_column($this->matches, 'kills')),
-          'deaths' => array_sum(array_column($this->matches, 'deaths')),
-          'score'  => array_sum(array_column($this->matches, 'score')),
-          'wins'   => array_sum(array_column($this->matches, 'outcome')),
-          'time'   => 0,
-        );
-        
-        $this->stats['kd'] = $this->stats['deaths'] > 0 ? round($this->stats['kills'] / $this->stats['deaths'], 2) : 'N/A';
+        $this->user = !empty($users[0]) ? $users[0] : FALSE;
+        $this->server = $this->user ? get_user_meta($this->user->ID, 'dl_idealserver', TRUE) : FALSE;
       }
   }
 }

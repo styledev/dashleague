@@ -1,5 +1,6 @@
 <?php if ( !class_exists('themeConfig') ) {
   class config {
+    private $options;
     function __construct() {
       global $pxlf;
       

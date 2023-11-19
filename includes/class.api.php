@@ -1,5 +1,6 @@
 <?php if ( !class_exists('dlAPI') ) {
   class dlAPI {
+    private $api, $clearance, $url, $user;
     function __construct( &$api ) {
       $this->user      = wp_get_current_user();
       $this->clearance = FALSE;
@@ -320,7 +321,7 @@
               ORDER BY tr2.tier ASC, {$order}
             ", $season);
           }
-          
+          fns::log($sql);
           $_items = $wpdb->get_results($sql, ARRAY_A);
           
           if ( !empty($_items) ) {
@@ -436,7 +437,7 @@
           ];
         }
         
-        $order = $cycle['num'] == 6 ? 'ORDER BY sr DESC' : 'ORDER BY mmr DESC';
+        $order = $cycle['num'] < 6 ? 'ORDER BY mmr DESC' : 'ORDER BY sr DESC';
         
         $teams_sql = $wpdb->prepare(
           'SELECT tm.name, tm.team_id,

@@ -8,10 +8,22 @@
   include 'class.teamup.php';
   
   class theme {
-    private $tml_errors;
-    private $template    = FALSE;
-    public $season_dates = FALSE;
-    
+    public $api, $teamup;
+    private $tml_errors, $config, $template = FALSE, $templates;
+    public
+      $cycle,
+      $season,
+      $season_dates = FALSE,
+      $servers      = [
+        'Amsterdam / Frankfurt'     => 'Amsterdam / Frankfurt',
+        'Dallas / Iowa'             => 'Dallas / Iowa',
+        'Hong Kong / Singapore'     => 'Hong Kong / Singapore',
+        'New York / North Carolina' => 'New York / North Carolina',
+        'Oregon / San Jose'         => 'Oregon / San Jose',
+        'Sydney'                    => 'Sydney',
+      ],
+      $stats;
+    public $instagram, $twitter;
     function __construct( &$blocks, &$menus, &$post_types, &$resources, &$sidebars, &$taxonomies, &$custom ) {
       $menus = array(
         'mobile'     => 'Mobile',
@@ -189,11 +201,14 @@
       }
       public function action_show_user_profile( $user ) {
         if ( is_admin() ) {
+          $server    = fns::array_to_attrs($this->servers, 'option', get_the_author_meta('dl_idealserver', $user->ID));
+          $s_history = get_the_author_meta('dl_idealservers', $user->ID);
+          $s_history = !empty($s_history) ? implode('</li><li>', $s_history) : 'None Yet';
+          
           $timezones = wp_timezone_choice(get_the_author_meta('dl_timezone', $user->ID));
           
           $tz_history = get_the_author_meta('dl_timezones', $user->ID);
-          if ( !empty($tz_history) ) $tz_history = implode('</li><li>', $tz_history);
-          else $tz_history = 'None Yet';
+          $tz_history = !empty($tz_history) ? implode('</li><li>', $tz_history) : 'None Yet';
           
           printf('
               <table class="form-table">
@@ -224,6 +239,22 @@
                   </td>
                 </tr>
                 <tr>
+                  <th><label for="dl_team">Lowest Ping Server</label></th>
+                  <td>
+                    <select id="dl_idealserver" name="dl_idealserver">
+                      %s
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <th><label for="dl_team">Server History</label></th>
+                  <td>
+                    <ol>
+                      <li>%s</li>
+                    </ol>
+                  </td>
+                </tr>
+                <tr>
                   <th><label for="dl_team">Timezone</label></th>
                   <td>
                     <select id="dl_timezone" name="dl_timezone">
@@ -245,6 +276,8 @@
             esc_html(get_the_author_meta('gamer_id', $user->ID)),
             esc_html(get_the_author_meta('gamer_id_alt', $user->ID)),
             $this->dl_team_options($user),
+            $server,
+            $s_history,
             $timezones,
             $tz_history
           );
@@ -277,15 +310,31 @@
         
         if ( isset($_POST['dl_team']) ) update_user_meta($user_id, 'dl_team', sanitize_text_field($_POST['dl_team']));
         
+        if ( isset($_POST['dl_idealserver']) ) {
+          $server  = sanitize_text_field($_POST['dl_idealserver']);
+          $servers = get_user_meta($user_id, 'dl_idealservers', TRUE);
+          
+          if ( !$servers ) $servers = [];
+          
+          $key = sprintf('%s: %s', date('m/d/Y'), $server);
+          
+          $current = in_array($key, $servers);
+          if ( !$current ) $servers[] = $key;
+          
+          update_user_meta($user_id, 'dl_idealserver', $server);
+          update_user_meta($user_id, 'dl_idealservers', $servers);
+        }
+        
         if ( isset($_POST['dl_timezone']) ) {
           $timezone  = sanitize_text_field($_POST['dl_timezone']);
           $timezones = get_user_meta($user_id, 'dl_timezones', TRUE);
           
           if ( !$timezones ) $timezones = [];
           
-          $current = $timezones ? array_slice($timezones, -1) : [];
+          $key = sprintf('%s: %s', date('m/d/Y'), $timezone);
           
-          if ( !isset($current[0]) || $current[0] !== $timezone ) $timezones[] = $timezone;
+          $current = in_array($key, $timezones);
+          if ( !$current ) $timezones[] = $key;
           
           update_user_meta($user_id, 'dl_timezone', $timezone);
           update_user_meta($user_id, 'dl_timezones', $timezones);
@@ -586,11 +635,10 @@
           
           $lock = DateTime::createFromFormat("m/d/Y\TH:i:sT", "{$dates['new_player_cut-off']}T23:59:59 -08:00");
           $end  = DateTime::createFromFormat("m/d/Y", $this->season['playoffs_end']);
-          
-          $this->season_dates['locked'] = $date->format('Ymd') > $lock->format('Ymd') && $date->format('Ymd') <= $end->format('Ymd');
+          $this->season_dates['locked'] = $date->format('Ymd') > $lock->format('Ymd') && $date->format('Ymd H:m') <= $end->format('Ymd 12:00');
           
           $start = DateTime::createFromFormat("m/d/Y", $dates['regular_start']);
-          $this->season_dates['locked_names'] = $date->format('Ymd') >= $start->format('Ymd') && $date->format('Ymd') <= $end->format('Ymd');
+          $this->season_dates['locked_names'] = $date->format('Ymd') >= $start->format('Ymd') && $date->format('Ymd H:m') <= $end->format('Ymd 12:00');
         }
         else {
           $this->season_dates['locked'] = FALSE;
@@ -630,6 +678,19 @@
           )), 'post_title', 'ID');
           
           $user       = wp_get_current_user();
+          
+          $server     = $user ? get_the_author_meta('dl_idealserver', $user->ID) : FALSE;
+          $servers    = fns::array_to_attrs($this->servers, 'option', $server);
+          $s_history  = get_the_author_meta('dl_idealservers', $user->ID);
+          
+          if ( $s_history ) {
+            $current = array_slice($s_history, -1);
+            
+            if ( $current[0] == $server ) array_pop($s_history);
+            
+            $s_history = !empty($s_history) ? sprintf('<span class="tml-description"><small>Historical Record<ol><li>%s</li></ol></small></span>', implode('</li><li>', $s_history)) : FALSE;
+          }
+          
           $timezone   = $user ? get_the_author_meta('dl_timezone', $user->ID) : '';
           $timezones  = wp_timezone_choice($timezone);
           $tz_history = get_the_author_meta('dl_timezones', $user->ID);
@@ -642,31 +703,66 @@
             $tz_history = !empty($tz_history) ? sprintf('<span class="tml-description"><small>Historical Record<ol><li>%s</li></ol></small></span>', implode('</li><li>', $tz_history)) : FALSE;
           }
           
+          $locks = [];
+          
+          if ( $this->season_dates['locked_names'] ) {
+            $locks[] = 'GAMERTAG';
+            $locks[] = 'GAMER ID';
+            $locks[] = 'GAMER ID ALT';
+          }
+          
+          if ( $this->season_dates['locked'] ) {
+            $locks[] = 'TEAM';
+          }
+          
           $form_fields = array(
             'profile' => array(
-              'hr1' => array( 'priority' => 5, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => 'Contact Info<hr class="hr hr--thin"/>')),
-                'discord'     => array( 'priority' => 7, 'label' => 'Discord Username', 'description' => 'If you need this changed please contact a moderator.', 'attributes' => array('disabled' => TRUE)),
-              'hr2' => array( 'priority' => 8, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/>Player Info<hr class="hr hr--thin"/>')),
-                'nickname'     => array( 'priority' => 9, 'label' => 'Gamertag', 'description' => ($this->season_dates['locked_names'] ? 'Name changes are locked for the season' : ''), 'render_args' => array('control_before' => '<small>(i.e. handle, nickname, etc)</small>')),
-                'gamer_id'     => array( 'priority' => 9, 'label' => 'Hyper Dash Gamer ID', 'description' => ($this->season_dates['locked_names'] ? 'Gamer ID changes are locked for the season' : '<small><a href="/how-to-find-your-gamer-id/" target="_blank">How to find your Gamer ID</a></small>')),
-                'gamer_id_alt' => array( 'priority' => 9, 'label' => 'HD Gamer ID Alt', 'description' => ($this->season_dates['locked_names'] ? 'Gamer ID changes are locked for the season' : '<small>If you use another headset you can list a gamer_id for it here.</small>')),
-                'dl_team'      => array( 'priority' => 9, 'label' => 'Team', 'type' => 'dropdown', 'options' => $teams, 'description' => ($this->season_dates['locked'] ? 'Rosters are now locked' : 'Changing this will de-roster you from your current team.')),
-                'dl_timezone'  => array( 'priority' => 9, 'label' => 'Timezone', 'type' => 'custom', 'content' => sprintf('<select name="dl_timezone" id="dl_timezone" class="tml-field">%s</select>', $timezones), 'render_args' => array(
-                  'after' => $tz_history
+              'hr1' => array( 'priority' => 1, 'type' => 'custom', 'render_args' => array('after' => '',
+                'before' => sprintf(
+                  '
+                    %s
+                    <strong><big>Gamer Info</big></strong><hr class="hr hr--thin"/>
+                  ',
+                  !empty($locks) ? sprintf('<div class="notice notice--red">The following fields are now locked for the season:<ul><li>%s</li></ul></div>', implode('</li><li>', $locks)) : ''
+                ))
+              ),
+                'dl_team'      => array( 'priority' => 2, 'label' => 'Team', 'type' => 'dropdown', 'options' => $teams, 'description' => (!$this->season_dates['locked'] ? 'Changing this will de-roster you from your current team.' : '')),
+                'nickname'     => array( 'priority' => 3, 'label' => 'Gamertag'),
+                'gamer_id'     => array( 'priority' => 4, 'label' => 'Gamer ID'),
+                'gamer_id_alt' => array( 'priority' => 5, 'label' => 'Gamer ID Alt', 'description' => '<small><a href="/how-to-find-your-gamer-id/" target="_blank">How to find your Gamer ID</a></small>'),
+                
+              'hr2' => array( 'priority' => 10, 'type' => 'custom', 'render_args' => array('after' => '',
+                'before' => '<hr class="hr hr--spacer"/><strong><big>Server & Timezone</big></strong><hr class="hr hr--thin"/>'
+              )),
+                'dl_idealserver' => array( 'priority' => 11, 'label' => 'Lowest Ping Server', 'type' => 'custom', 'content' => sprintf('<select name="dl_idealserver" id="dl_idealserver" class="tml-field">%s</select>', $servers), 'render_args' => array(
+                  'before' => '<div class="tml-field-wrap tml-dl_idealserver-wrap">',
+                  'after' => "{$s_history}</div>"
                 )),
-              'hr3' => array( 'priority' => 9, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/>Site Credentials<hr class="hr hr--thin"/>')),
+                'dl_timezone'     => array( 'priority' => 12, 'label' => 'Timezone', 'type' => 'custom', 'content' => sprintf('<select name="dl_timezone" id="dl_timezone" class="tml-field">%s</select>', $timezones), 'render_args' => array(
+                  'before' => '<div class="tml-field-wrap tml-dl_timezone-wrap">',
+                  'after' => "{$tz_history}</div>"
+                )),
+                
+              'hr3' => array( 'priority' => 20, 'type' => 'custom', 'render_args' => array('after' => '',
+                'before' => '<hr class="hr hr--spacer"/><strong><big>User Info</big></strong><hr class="hr hr--thin"/>'
+              )),
+                'discord'     => array( 'priority' => 21, 'label' => 'Discord Username', 'description' => 'If you need this changed please contact a moderator.', 'attributes' => array('disabled' => TRUE)),
             ),
             'register' => array(
-              'hr1' => array( 'priority' => 5, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => 'Contact Info<hr class="hr hr--thin"/>')),
-                'discord'    => array( 'priority' => 7, 'label' => __('Discord Username'), 'description' => ''),
-                'user_email' => array( 'priority' => 7, 'label' => __('Email'), 'type' => 'email', 'id' => 'user_email', 'attributes' => array('maxlength' => 200)),
-              'hr2' => array( 'priority' => 8, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/>Player Info<hr class="hr hr--thin"/>')),
-                'nickname'     => array( 'priority' => 8, 'label' => __('Gamertag'), 'render_args' => array('control_before' => '<small>(i.e. handle, nickname, etc)</small>')),
-                'gamer_id'     => array( 'priority' => 8, 'label' => __('Gamer ID'), 'description' => '', 'render_args' => array('control_before' => '<small><a href="/how-to-find-your-gamer-id/" target="_blank">How to find your Gamer ID</a></small>')),
-                'gamer_id_alt' => array( 'priority' => 8, 'label' => __('Gamer ID'), 'description' => '', 'render_args' => array('control_before' => '<small>If you use another headset you can list a gamer_id for it here.</small>')),
-                'dl_team'      => array( 'priority' => 8, 'label' => __('Team'), 'type' => 'dropdown', 'options' => ( $this->season_dates['locked'] ? array('Free Agent' => 'Free Agent (no team)') : $teams), 'description' => ($this->season_dates['locked'] ? 'Rosters are locked for the Season' : '')),
-                'dl_timezone'  => array( 'priority' => 8, 'label' => 'Timezone', 'type' => 'custom', 'content' => sprintf('<select name="dl_timezone" id="dl_timezone" class="tml-field">%s</select>', $timezones)),
-              'hr3' => array( 'priority' => 9, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/>Site Credentials<hr class="hr hr--thin"/>')),
+              'hr1' => array( 'priority' => 1, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<strong><big>Gamer Info</big></strong><hr class="hr hr--thin"/>')),
+                'dl_team'      => array( 'priority' => 2, 'label' => __('Team'), 'type' => 'dropdown', 'options' => ( $this->season_dates['locked'] ? array('Free Agent' => 'Free Agent (roster locked)') : $teams)),
+                'nickname'     => array( 'priority' => 3, 'label' => __('Gamertag')),
+                'gamer_id'     => array( 'priority' => 4, 'label' => __('Gamer ID')),
+                'gamer_id_alt' => array( 'priority' => 5, 'label' => __('Gamer ID'), 'description' => '<small><a href="/how-to-find-your-gamer-id/" target="_blank">How to find your Gamer ID</a></small>'),
+                
+              'hr2' => array( 'priority' => 10, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/><strong><big>Server & Timezone</big></strong><hr class="hr hr--thin"/>')),
+                'dl_idealserver' => array( 'priority' => 11, 'label' => 'Lowest Ping Server', 'type' => 'custom', 'content' => sprintf('<select name="dl_idealserver" id="dl_idealserver" class="tml-field">%s</select>', $servers)),
+                'dl_timezone'    => array( 'priority' => 12, 'label' => 'Timezone', 'type' => 'custom', 'content' => sprintf('<select name="dl_timezone" id="dl_timezone" class="tml-field">%s</select>', $timezones)),
+                
+              'hr3' => array( 'priority' => 15, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/><strong><big>User Info</big></strong><hr class="hr hr--thin"/>')),
+                'discord'    => array( 'priority' => 16, 'label' => __('Discord'), 'description' => ''),
+                'user_email' => array( 'priority' => 17, 'label' => __('Email'), 'type' => 'email', 'id' => 'user_email', 'attributes' => array('maxlength' => 200)),
+                'user_login'   => array( 'priority' => 18, 'label' => __('Username'), 'description' => ''),
             )
           );
           
@@ -768,6 +864,8 @@
         
         if ( isset($_POST['dl_team']) ) update_user_meta($user_id, 'dl_team', sanitize_text_field($_POST['dl_team']));
         
+        if ( isset($_POST['dl_idealserver']) ) update_user_meta($user_id, 'dl_idealserver', sanitize_text_field($_POST['dl_idealserver']));
+        
         if ( isset($_POST['dl_timezone']) ) update_user_meta($user_id, 'dl_timezone', sanitize_text_field($_POST['dl_timezone']));
       }
       public function tml_validate_form_fields( $errors ) {
@@ -795,6 +893,11 @@
               if ( $user ) $errors->add('nickname', '<strong>Error</strong>: This gamertag is aleady in use by another player. Please choose another one.');
             }
           }
+        }
+        
+        $servers = tml_get_request_value('dl_idealserver', 'post');
+        if ( ! $servers || $servers == '' ) {
+          $errors->add('dl_idealserver', '<strong>ERROR</strong>: You must pick a server.');
         }
         
         $timezone = tml_get_request_value('dl_timezone', 'post');

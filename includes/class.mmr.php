@@ -1,5 +1,6 @@
 <?php if ( !class_exists('dlMMR') ) {
   class dlMMR {
+    private $cycle, $cycles, $rolling, $type, $vars;
     function __construct() {
       global $pxl;
       
@@ -300,8 +301,8 @@
       private function formula_domination( &$data ) {
         $args = array(
           'time' => array(
-            'played'     => strtotime($data['info']['time']) - strtotime('TODAY'),
-            'remainging' => null
+            'played'    => strtotime($data['info']['time']) - strtotime('TODAY'),
+            'remaining' => null
           ),
           'win' => 0.00075
         );

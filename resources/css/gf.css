@@ -185,6 +185,7 @@
     .pxl_form_justify .gform_body .gform_fields{margin: 0 -0.5rem;}
     .pxl_form_justify .gform_body .gform_fields .gfield{float:left;margin:0.49rem;width:100%;}
     .pxl_form_justify .gform_body .gform_fields .gfield *{width:100%;}
+    .pxl_form_justify .gform_body .gform_fields .gfield .gfield_required{width:auto;}
     .pxl_form_justify .gform_body .gform_fields .gfield.pxl_half{width:calc(50% - 1rem);}
     .pxl_form_justify .gform_body .gform_fields .gfield.pxl_third{width:calc(33.33% - 1rem);}
     .pxl_form_justify .gform_footer{clear:both;margin-top:1rem;}

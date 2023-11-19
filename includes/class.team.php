@@ -1,5 +1,6 @@
 <?php if ( !class_exists('dlTeam') ) {
   class dlTeam {
+    public $id, $link, $logo, $name, $roster, $stats, $teams_timezones;
     function __construct( $team = FALSE ) {
       if ( !$team ) {
         global $post;

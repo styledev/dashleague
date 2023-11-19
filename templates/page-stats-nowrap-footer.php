@@ -11,22 +11,31 @@
     'posts_per_page' => -1,
     'order'          => 'ASC',
     'orderby'        => 'title',
-    'season'         => 'current',
-  )), 'post_title', 'ID');
+    'season'         => 'current')),
+    'post_title', 'ID'
+  );
 ?>
 <style>
-  .sorting_1{background-color:rgba(0,20,50,0.1);color:#111;}
-  .highlight{background-color:rgba(30,118,189,.8);color:#fff;}
-  tr:hover .sorting_1{color:#fff;}
+  .sorting_1{background-color:rgba(0,20,50,0.2);color:#111;}
+  .highlight{background-color:rgba(30,118,189,.8)!important;color:#fff;}
 </style>
 
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/dt/dt-1.10.24/b-1.7.0/sb-1.0.1/datatables.min.css"/>
-<script type="text/javascript" src="https://cdn.datatables.net/v/dt/dt-1.10.24/b-1.7.0/sb-1.0.1/datatables.min.js"></script>
-<script type="text/javascript" src="https://cdn.datatables.net/plug-ins/1.10.24/features/deepLink/dataTables.deepLink.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css"/>
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/fixedcolumns/4.3.0/css/fixedColumns.dataTables.min.css"/>
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/searchbuilder/1.6.0/css/searchBuilder.dataTables.min.css"/>
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css"/>
+<!-- <link rel="stylesheet" type="text/css" href=""/> -->
+
+<script type="text/javascript" src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/plug-ins/1.13.6/features/deepLink/dataTables.deepLink.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/fixedcolumns/4.3.0/js/dataTables.fixedColumns.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/searchbuilder/1.6.0/js/dataTables.searchBuilder.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<!-- <script type="text/javascript" src=""></script> -->
 
 <div class="content">
   <div class="alignfull">
-    <table class="hide hover" id="datatable">
+    <table class="hide hover stripe row-border order-column" id="datatable">
       <?php
         if ( !empty($players) ) {
           $modes = array(
@@ -43,11 +52,11 @@
               array_push($headers, "$mode $field");
             }
           }
-        
+          
           echo '<thead><th></th>';
             foreach ($headers as $header) {
               preg_match_all('#(?<=\s|\b)\pL#u', $header, $abbrv);
-            
+              
               $header  = explode(' | ', $header);
               $label   = $header[0];
               $tooltip = isset($header[1]) ? " title=\"{$header[1]}\"" : '';
@@ -84,12 +93,12 @@
                   array_fill(0,count($siblings[0]), 0)
                 );
               }
-            
+              
               foreach ($mode as $t => $value) {
                 $player["$m $t"] = $value;
               }
             }
-          
+            
             printf('<tr><td></td><td>%s</td></tr>', implode('</td><td>', $player));
           }
         }
@@ -122,6 +131,9 @@
             },
             order: [[ 1, 'asc' ]],
             paging: true,
+            fixedColumns: {
+              left: 2,
+            },
             pageLength: 20,
             searchBuilder: {
               greyscale: true

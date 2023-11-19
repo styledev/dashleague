@@ -3,8 +3,9 @@
   
   $player = new dlPlayer();
   $player->get_stats();
-  
+  $logo = $player->team ? pxl::image($player->team->id, array('w' => 100, 'h' => 100, 'return' => 'tag' )) : '';
   $maps = array_column($wpdb->get_results("SELECT id, post_title FROM {$wpdb->prefix}posts WHERE post_type = 'map'"), 'post_title', 'id');
+  $team = $player->team ? "{$player->team->name} " : '';
 ?>
 <div class="content">
   <style>
@@ -27,15 +28,29 @@
     }
   </style>
   <div class="alignwide">
-    <br>
-    <div class="player player--<?php echo $player->captain ? 'captain' : 'player'; ?>">
-      <div class="player__tag">
-        <?php
-          if ( $player->team ) printf('<span class="player__tag--team"><span>%s</span></span>', $player->team->name);
-          printf('<span class="player__tag--name"><span>%s</span></span>', get_the_title());
-        ?>
+    <div class="bar__container wp-block-group__inner-container">
+      <div class="bar__wrapper alignwide">
+        <div class="bar__pos bar__pos--left">
+          <?php
+            if ( $logo ) printf('<span class="bar__logo">%s</span>', $logo);
+            $captain = $player->captain ? '<span class="server">Captain</span> ' : '';
+            
+            printf('
+              <div class="bar__info">
+                <div class="bar__title">%s%s</div>
+                <div class="bar__rp">
+                  <div class="bar__score">%s</div>
+                  <div class="bar__tag">K/D</div>
+                </div>
+                <div class="bar__servers">%s<span class="server">%s</span></div>
+              </div>',
+              $team, get_the_title(), $player->stats['kd'], $captain, $player->server
+            );
+          ?>
+        </div>
+        <div class="bar__pos bar__pos--right">
+        </div>
       </div>
-      <div class="player__bot"></div>
     </div>
     
     <h2>All Time Stats</h2>
@@ -160,7 +175,7 @@
           $match->outcome ? 1 : 0,
           $match->kills,
           $match->deaths,
-          ROUND($match->kills/$match->deaths, 2),
+          ( $match->deaths == 0 ? 0 : ROUND($match->kills/$match->deaths, 2)),
           $match->headshots,
           number_format($match->score)
         );

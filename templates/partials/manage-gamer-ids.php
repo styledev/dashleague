@@ -41,7 +41,11 @@
   $query = [];
   
   $cycles = $pxl->stats->cycles();
-  if ( !empty($cycles) ) $query['where'] = sprintf("gs.datetime >= '%s'", $cycles[0]['start']);
+  
+  if ( !empty($cycles) ) {
+    $cycle = array_pop($cycles);
+    $query['where'] = sprintf("gs.datetime >= '%s'", $cycle['start']);
+  }
   
   $matches    = $pxl->stats->games($query);
   $player_ids = array();

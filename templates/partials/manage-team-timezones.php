@@ -2,6 +2,7 @@
   global $wpdb;
   
   class teams_timezones{
+    private $offset_servers, $servers, $servers_offset, $teams, $teams_players, $teams_timezones, $wpdb;
     function __construct() {
       global $wpdb;
       

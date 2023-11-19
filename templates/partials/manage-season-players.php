@@ -28,7 +28,7 @@
   
   foreach ($teams_current as $team_id) {
     if ( $players = get_field('players', $team_id) ) {
-      foreach ($players as $key => $player) {fns::log($player->ID);
+      foreach ($players as $key => $player) {
         if ( isset($players_all[$player->post_name]) ) unset($players_all[$player->post_name]);
         
         $players_current[$player->post_name] = $player->ID;

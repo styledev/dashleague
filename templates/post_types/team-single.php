@@ -31,6 +31,7 @@
     'ControlPoint_Stadium' => 'Stadium',
     'dom_quarry'           => 'Quarry',
     'Domination_Grey'      => 'Quarry',
+    'dom_volcano'          => 'Volcano',
   );
   
   $stats = $pxl->stats->team($team_id);

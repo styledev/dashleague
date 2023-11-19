@@ -1,5 +1,6 @@
 <?php if ( !class_exists('dlUser') ) {
   class dlUser {
+    public $active, $captain, $discord, $profile, $team;
     private $user;
     function __construct( $user = FALSE ) {
       $this->active  = FALSE;
@@ -54,8 +55,5 @@
           }
         }
       }
-      
-    // Helpers
-      
   }
 }

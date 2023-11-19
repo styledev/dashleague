@@ -6,6 +6,7 @@
             "key": "field_5fb87c74733c2",
             "label": "Mode",
             "name": "mode",
+            "aria-label": "",
             "type": "select",
             "instructions": "",
             "required": 1,
@@ -35,6 +36,7 @@
             "key": "field_60f933c282b20",
             "label": "Map HD",
             "name": "map_hd",
+            "aria-label": "",
             "type": "select",
             "instructions": "",
             "required": 1,
@@ -51,6 +53,7 @@
                 "dom_waterway": "dom_waterway",
                 "Domination_Yellow": "Domination_Yellow",
                 "dom_quarry": "dom_quarry",
+                "dom_volcano": "dom_volcano",
                 "Domination_Grey": "Domination_Grey",
                 "pay_abyss": "pay_abyss",
                 "pay_canyon": "pay_canyon",
@@ -62,10 +65,10 @@
             "default_value": [
                 "choose"
             ],
-            "allow_null": 0,
-            "multiple": 1,
-            "ui": 0,
             "return_format": "value",
+            "multiple": 1,
+            "allow_null": 0,
+            "ui": 0,
             "ajax": 0,
             "placeholder": ""
         }
@@ -88,5 +91,5 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
-    "modified": 1666564340
+    "modified": 1693880758
 }

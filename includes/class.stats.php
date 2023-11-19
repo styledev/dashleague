@@ -1,6 +1,6 @@
 <?php if ( !class_exists('dlStats') ) {
   class dlStats {
-    public $internal = FALSE;
+    public $clearance, $internal = FALSE, $maps, $url, $user;
     function __construct( &$api ) {
       $this->url       = 'https://backend-hyperdash.be/current/index.php';
       $this->user      = wp_get_current_user();
@@ -434,7 +434,7 @@
             'map'      => $game['map'],
             'matchID'  => $matchID,
             'time'     => $game['time'],
-            'type'     => strtolower($game['type']),
+            'type'     => (!empty($game['type']) ? strtolower($game['type']) : ''),
           ),
           'teams' => array()
         );
@@ -452,7 +452,7 @@
           if ( !empty($game['type']) ) {
             if ( $game['type'] == 'Payload' ) {
               $team['score_percentage'] = str_replace('%', '', $args['score']);
-              $team['score_time']       = !empty($game['round_data']) && isset($game['round_data'][$team_name]) ? gmdate('H:i:s', $game['round_data'][$team_name]) : NULL;
+              $team['score_time']       = !empty($game['round_data']) && isset($game['round_data'][$team_name]) ? gmdate('H:i:s', ROUND($game['round_data'][$team_name])) : NULL;
               $team['players']          = array();
             }
             else $team['score_points'] = $args['score'];
@@ -917,7 +917,7 @@
             }
           }
           
-          $match['time'] = gmdate("H:i:s", $match['time']) .'.'.$milleseconds;
+          $match['time'] = gmdate("H:i:s", ROUND($match['time'])) .'.'.$milleseconds;
           
           foreach ($data as $type => $score) {
             $teams = array_keys($score);
@@ -1029,7 +1029,6 @@
         }
       }
       private function game_players_sort( &$game ) {
-        // fns::put($game);
         foreach ($game['teams'] as $team => $data) {
           $score = array_column($data['players'], 'score');
           array_multisort($score, SORT_DESC, $data['players']);
@@ -1046,7 +1045,9 @@
             
             $game['round_data'] = array_column($game['round_data'], 'ROUND_TIME', 'TEAM');
             arsort($game['round_data']);
-            foreach ($game['round_data'] as $team => $time) $game['teams'][$team]['round_time'] = date('i:s', $time);
+            foreach ($game['round_data'] as $team => $time) {
+              $game['teams'][$team]['round_time'] = date('i:s', ROUND($time));
+            }
           }
         }
         
@@ -1237,7 +1238,7 @@
           $season,
           $where_string
         );
-        // fns::error($sql);
+        
         return $wpdb->get_results($sql, ARRAY_A);
       }
       public function stats_top( $limit = FALSE, $SOPP = FALSE ) {

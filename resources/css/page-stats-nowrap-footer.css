@@ -5,9 +5,11 @@
 #theBody .dt-buttons{text-align:center;}
 #theBody .dataTables_info{float:none;padding:0;text-align:right;}
 #theBody table.dataTable{font-size:15px;}
-#theBody table.dataTable tbody tr.even{background-color:#f2f2f2;}
+#theBody table.dataTable tbody tr:hover>.dtfc-fixed-left,
+#theBody table.dataTable tbody tr:hover>.dtfc-fixed-right,
 #theBody table.dataTable.hover tbody tr:hover,
 #theBody table.dataTable.display tbody tr:hover{background-color:var(--blue-light)!important;color:#fff;}
+#theBody table.dataTable.hover tbody tr:hover > .sorting_1{color:#fff;}
 #theBody .dataTables_wrapper .dataTables_filter{float:none;text-align:left;}
 #theBody table.dataTable thead th,
 #theBody table.dataTable thead td{line-height:100%;text-align:center;}
