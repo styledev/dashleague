@@ -1,5 +1,5 @@
 <?php
-  global $team;
+  global $pxl, $team;
   $team = $user->team;
   
   $max = 12;
@@ -88,7 +88,7 @@
     return $field;
   });
   
-  if ( $user->active ) :
+  if ( $user->active || $pxl->access('administrator')) :
 ?>
     <style>
       .acf-relationship .list{height:460px!important;}
@@ -130,7 +130,9 @@
         </div>
       </div>
       <?php
-        if ( $team && $user->captain && !$pxl->season_dates['locked'] ) :
+        // fns::error();
+        
+        if ( ($team && $user->captain && !$pxl->season_dates['locked']) || $pxl->access('administrator') ) :
           echo '<br><div class="notice notice--red center-text"><small>Players shown on the right side below but not on the left have not signed up on the site yet. If you remove them you won\'t be able to re-add them until they do.</small></div>';
           
           if ( !empty($team->roster['requesting']) ) {

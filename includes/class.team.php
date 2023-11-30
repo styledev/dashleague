@@ -1,6 +1,8 @@
 <?php if ( !class_exists('dlTeam') ) {
   class dlTeam {
-    public $id, $link, $logo, $name, $roster, $stats, $teams_timezones;
+    public $id, $ideal_servers, $link, $logo, $name, $offset_servers, $roster, $servers_offset, $stats, $timezones, $teams_timezones, $wpdb;
+    private $userids_players;
+    
     function __construct( $team = FALSE ) {
       if ( !$team ) {
         global $post;
@@ -153,9 +155,9 @@
         $discord_usernames = array_column($this->roster['players'], 'discord', 'ID');
         
         if ( $users_ids = $this->users_ids($discord_usernames) ) {
-          $discord_players = $this->discord_players($players, $discord_usernames);
+          $discord_players       = $this->discord_players($players, $discord_usernames);
           $this->userids_players = $this->users_players($users_ids, $discord_players);
-          $this->timezones = $this->users_timezones($users_ids);
+          $this->timezones       = $this->users_timezones($users_ids);
         }
       }
       public function servers() {
