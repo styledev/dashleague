@@ -321,7 +321,7 @@
               ORDER BY tr2.tier ASC, {$order}
             ", $season);
           }
-          fns::log($sql);
+          // fns::log($sql);
           $_items = $wpdb->get_results($sql, ARRAY_A);
           
           if ( !empty($_items) ) {

@@ -26,8 +26,8 @@
   .clone img{display:block;}
   .clone > img{height:720px!important;width:1280px!important;}
   .clone__team{position:absolute;}
-  .clone__team--0{left:100px;top:100px;}
-  .clone__team--1{bottom:100px;right:100px;}
+  .clone__team--0{left:165px;top:256px;}
+  .clone__team--1{left:765px;top:256px;}
   .clone__team img{height:350px;width:350px;}
   #betterdocs-ia{display:none!important;}
 </style>
@@ -39,13 +39,14 @@
         $image = pxl::image($team->ID, array('h' => 350, 'w' => 350, 'return' => 'tag', 'srcset' => FALSE, 'retina' => false));
         printf('<div class="clone__team clone__team--%s">%s</div>', $key, $image);
       }
+      $img = RES . "/images/dl-yt-base.jpg";
     ?>
     <img src="<?php echo RES ?>/images/dl-yt-base.jpg" width="1280" height="720" alt="Dl Yt Base">
   </div>
 </div>
 
 <script>
-  var box = document.querySelector('.box'),
+  var box   = document.querySelector('.box'),
       clone = document.querySelector('.clone');
       
   html2canvas(clone, {
