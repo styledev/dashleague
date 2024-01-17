@@ -14,49 +14,79 @@
     'post_name__in' => $names,
     'orderby'       => 'post_name__in'
   ));
+  
+  $sizes = [
+    'yt'  => [ 'height' => 720, 'width' => 1280, 'logo' => 350, 'team_top' => 276, 'team_a' => 165, 'team_b' => 765 ],
+    'obs' => [ 'height' => 1080, 'width' => 1920, 'logo' => 512, 'team_top' => 406, 'team_a' => 248, 'team_b' => 1148 ],
+  ]
 ?>
 <script src="<?php echo RES ?>/js/html2canvas.min.js"></script>
 
 <style>
-  body{background-color:#000;}
-  .box{display:flex;flex-direction:row-reverse;min-height:720px;min-width:1280px;
-    height:720px;width:1280px;overflow:hidden;
-  }
-  .clone{height:720px;position:relative;width:1280px;}
+  body{background-color:#111;}
+  .box{display:flex;flex-direction:row-reverse;overflow:hidden;}
+  
+  .clone{position:relative;}
   .clone img{display:block;}
-  .clone > img{height:720px!important;width:1280px!important;}
   .clone__team{position:absolute;}
-  .clone__team--0{left:165px;top:256px;}
-  .clone__team--1{left:765px;top:256px;}
-  .clone__team img{height:350px;width:350px;}
+  
   #betterdocs-ia{display:none!important;}
 </style>
 
-<div class="box">
-  <div class="clone">
-    <?php
+<div>
+  <?php
+    foreach ($sizes as $type => $args) {
+      $team_logos = '';
+    
       foreach ($teams as $key => $team) {
-        $image = pxl::image($team->ID, array('h' => 350, 'w' => 350, 'return' => 'tag', 'srcset' => FALSE, 'retina' => false));
-        printf('<div class="clone__team clone__team--%s">%s</div>', $key, $image);
+        $image = pxl::image($team->ID, array('h' => $args['logo'], 'w' => $args['logo'], 'return' => 'tag', 'srcset' => FALSE, 'retina' => false));
+        $team_logos .= sprintf('<div class="clone__team clone__team--%s">%s</div>', $key, $image);
       }
-      $img = RES . "/images/dl-yt-base.jpg";
-    ?>
-    <img src="<?php echo RES ?>/images/dl-yt-base.jpg" width="1280" height="720" alt="Dl Yt Base">
-  </div>
+      
+      echo "
+        <style>
+          .box--$type{height:{$args['height']}px;min-height:{$args['height']}px;min-width:{$args['width']}px;width:{$args['width']}px;}
+          .box--$type .clone > img{height:{$args['height']}px!important;width:{$args['width']}px!important;}
+          .box--$type .clone{height:{$args['height']}px;width:{$args['width']}px;}
+          .box--$type .clone__team--0{left:{$args['team_a']}px;top:{$args['team_top']}px;}
+          .box--$type .clone__team--1{left:{$args['team_b']}px;top:{$args['team_top']}px;}
+          .box--$type .clone__team img{height:<?php echo {$args['logo']} ?>px;width:{$args['logo']}px;}
+        </style>
+      ";
+      
+      printf(
+        '
+          <div class="box box--%s">
+            <div class="clone">
+              %s
+              <img src="%s" width="%s" height="%s" alt="DL %1$s">
+            </div>
+          </div>
+        ',
+        $type,
+        $team_logos,
+        RES . "/images/dl-team-vs-team-{$type}.jpg",
+        $args['width'], $args['height']
+      );
+    }
+  ?>
 </div>
 
 <script>
-  var box   = document.querySelector('.box'),
-      clone = document.querySelector('.clone');
-      
-  html2canvas(clone, {
-    width:1280,
-    height:720,
-    scale: 1,
-    useCORS: true,
-    imageTimeout: 0,
-    allowTaint: true
-  }).then(function(canvas) {
-    box.appendChild(canvas);
-  });
+  var boxes = document.querySelectorAll('.box');
+  
+  boxes.forEach((box) => {
+    var clone = box.querySelector('.clone');
+    
+    html2canvas(clone, {
+      width:clone.clientWidth,
+      height:clone.clientHeight,
+      scale: 1,
+      useCORS: true,
+      imageTimeout: 0,
+      allowTaint: true
+    }).then(function(canvas) {
+      box.appendChild(canvas);
+    });
+  })
 </script>
