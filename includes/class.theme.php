@@ -727,10 +727,9 @@
                 ))
               ),
                 'dl_team'      => array( 'priority' => 2, 'label' => 'Team', 'type' => 'dropdown', 'options' => $teams, 'description' => (!$this->season_dates['locked'] ? 'Changing this will de-roster you from your current team.' : '')),
-                'nickname'     => array( 'priority' => 3, 'label' => 'Gamertag'),
-                'gamer_id'     => array( 'priority' => 4, 'label' => 'Gamer ID'),
-                'gamer_id_alt' => array( 'priority' => 5, 'label' => 'Gamer ID Alt', 'description' => '<small><a href="/how-to-find-your-gamer-id/" target="_blank">How to find your Gamer ID</a></small>'),
-                
+                'nickname'     => array( 'priority' => 3, 'label' => 'Gamertag', 'attributes' => []),
+                'gamer_id'     => array( 'priority' => 4, 'label' => __('Headset - Primary'), 'attributes' => [], 'render_args' => array('before' => '<div class="tml-field-wrap tml-%s-wrap">Gamer ID(s) <small><a href="/how-to-find-your-gamer-id/" target="_blank">[How do I find my Gamer ID?]</a></small>'), 'attributes' => ['placeholder' => 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX', 'minlength' => 5]),
+                'gamer_id_alt' => array( 'priority' => 5, 'label' => __('Headset - Secondary'), 'attributes' => ['placeholder' => 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX']),
               'hr2' => array( 'priority' => 10, 'type' => 'custom', 'render_args' => array('after' => '',
                 'before' => '<hr class="hr hr--spacer"/><strong><big>Server & Timezone</big></strong><hr class="hr hr--thin"/>'
               )),
@@ -752,8 +751,8 @@
               'hr1' => array( 'priority' => 1, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<strong><big>Gamer Info</big></strong><hr class="hr hr--thin"/>')),
                 'dl_team'      => array( 'priority' => 2, 'label' => __('Team'), 'type' => 'dropdown', 'options' => ( $this->season_dates['locked'] ? array('Free Agent' => 'Free Agent (roster locked)') : $teams)),
                 'nickname'     => array( 'priority' => 3, 'label' => __('Gamertag')),
-                'gamer_id'     => array( 'priority' => 4, 'label' => __('Gamer ID')),
-                'gamer_id_alt' => array( 'priority' => 5, 'label' => __('Gamer ID'), 'description' => '<small><a href="/how-to-find-your-gamer-id/" target="_blank">How to find your Gamer ID</a></small>'),
+                'gamer_id'     => array( 'priority' => 4, 'label' => __('Headset - Primary'), 'attributes' => [], 'render_args' => array('before' => '<div class="tml-field-wrap tml-%s-wrap">Gamer ID(s) <small><a href="/how-to-find-your-gamer-id/" target="_blank">[How do I find my Gamer ID?]</a></small>'), 'attributes' => ['placeholder' => 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX', 'minlength' => 5]),
+                'gamer_id_alt' => array( 'priority' => 5, 'label' => __('Headset - Secondary'), 'attributes' => ['placeholder' => 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX']),
                 
               'hr2' => array( 'priority' => 10, 'type' => 'custom', 'render_args' => array('after' => '', 'before' => '<hr class="hr hr--spacer"/><strong><big>Server & Timezone</big></strong><hr class="hr hr--thin"/>')),
                 'dl_idealserver' => array( 'priority' => 11, 'label' => 'Lowest Ping Server', 'type' => 'custom', 'content' => sprintf('<select name="dl_idealserver" id="dl_idealserver" class="tml-field">%s</select>', $servers)),
@@ -767,13 +766,13 @@
           );
           
           if ( $this->season_dates['locked'] ) {
-            $form_fields['profile']['dl_team']['attributes'] = array('disabled' => TRUE);
+            $form_fields['profile']['dl_team']['attributes'] = array_merge($form_fields['profile']['dl_team']['attributes'], ['disabled' => TRUE]);
           }
           
           if ( $this->season_dates['locked_names'] ) {
-            $form_fields['profile']['nickname']['attributes'] = array('readonly' => TRUE);
-            $form_fields['profile']['gamer_id']['attributes'] = array('readonly' => TRUE);
-            $form_fields['profile']['gamer_id_alt']['attributes'] = array('readonly' => TRUE);
+            $form_fields['profile']['nickname']['attributes']     = array_merge($form_fields['profile']['nickname']['attributes'], ['readonly' => TRUE]);
+            $form_fields['profile']['gamer_id']['attributes']     = array_merge($form_fields['profile']['gamer_id']['attributes'], ['readonly' => TRUE]);
+            $form_fields['profile']['gamer_id_alt']['attributes'] = array_merge($form_fields['profile']['gamer_id_alt']['attributes'], ['readonly' => TRUE]);
           }
           
           $user    = wp_get_current_user();

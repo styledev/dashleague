@@ -27,7 +27,7 @@
   .utility-box{background-color:#fff;border-radius:6px;display:flex;overflow:hidden;}
   .utility-box__desc{background-color:var(--red);flex:1;padding:30px;display:flex;flex-direction:column;}
   .utility-box__title{color:#fff;margin-top:0;flex:1;}
-  .utility-box__content{flex:1;padding:30px;flex:2;}
+  .utility-box__content{padding:30px;flex:3;}
   .utility__logomark{opacity:0.2;position:fixed;bottom:20px;right:20px;}
   .utility__buttons{display:flex;justify-content:space-between;}
   .utility__buttons .tml-field-wrap{margin-bottom:0;}

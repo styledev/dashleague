@@ -87,24 +87,20 @@
           $start = DateTime::createFromFormat("Y-m-d\TH:i:sT", $event->start_dt);
           $start->setTimeZone(new DateTimeZone($user_tz));
           
-          $diff    = date_diff($now, $start);
-          $network = isset($event->custom->casting_network) ? $event->custom->casting_network[0] : FALSE;
-          $stream  = isset($event->custom->stream_link) ? $event->custom->stream_link : FALSE;
+          $network      = 'dln';
+          $network_link = 'https://www.youtube.com/c/DashLeagueNetwork';
+          $stream       = isset($event->custom->stream_link) ? $event->custom->stream_link : FALSE;
           
-          switch ($network) {
-            case 'dltv': $network_link = 'https://www.youtube.com/c/DashLeagueTV'; break;
-            case 'dln': $network_link  = 'https://www.youtube.com/c/DashLeagueNetwork'; break;
-            default: $network_link     = FALSE; break;
+          if ( $stream ) {
+            $casted_by = isset($event->who) ? $event->who : 'DLN';
+            $link = sprintf('<a href="%s" class="btn btn--dln" target="_blank">Casting by %s @ DLN</a>', $stream, $casted_by, $network);
+          }
+          else {
+            $diff = date_diff($now, $start);
+            $link = sprintf('<button class="btn btn--ghost btn--none">%s</button>', ($diff->invert ? 'Not Casted' : 'May not be Casted'));
           }
           
-          $tense = $start->format('d') == $day ? 'Live' : 'Watch';
-          $link  = $stream ? $stream : $network_link;
-          
-          if ( $link ) $link = sprintf('<a href="%s" class="btn btn--%s" target="_blank">%s @ %s</a>', $link, $network, $tense, strtoupper($network));
-          else $link = sprintf('<button class="btn btn--ghost btn--none">%s</button>', ($diff->invert ? 'Not Casted' : 'May not be Casted'));
-          
           $servers = isset($event->custom->servers) ? str_replace('_', ' ', implode(', ', $event->custom->servers)) : 'Not Specified';
-          
           $teams   = explode(' ', $event->title);
           
           $team_a      = new WP_Query([ 'posts_per_page' => 1, 'post_type' => 'team', 'title' => $teams[0] ]);
