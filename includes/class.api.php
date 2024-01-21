@@ -212,26 +212,26 @@
       public function data_tiers( $data = array() ) {
         global $pxl, $wpdb;
         
-        $params = array_merge($data, $_GET);
+        $params = array_merge($_GET, $data);
         $items  = array();
         
         if ( isset($params['cycle']) && !$params['cycle'] ) return FALSE;
         
-        $cycles    = $wpdb->get_results($wpdb->prepare("SELECT cycle as num, start, end FROM dl_tiers WHERE season = %s GROUP BY cycle ORDER BY cycle ASC", $pxl->season['number']), ARRAY_A);
+        $season = isset($params['season']) ? $params['season'] : $pxl->season['number'];
+        $cycles = $wpdb->get_results($wpdb->prepare("SELECT cycle as num, start, end FROM dl_tiers WHERE season = %s GROUP BY cycle ORDER BY cycle ASC", $season), ARRAY_A);
+        
         $cycle_num = isset($params['cycle']) ? $params['cycle'] : 1;
         $cycle_key = $cycle_num - 1;
         $cycle     = $cycles[$cycle_key] ?? FALSE;
         
         if ( ! $cycle ) return FALSE;
         
-        $season = isset($params['season']) ? $params['season'] : $pxl->season['number'];
-        
         $teams = implode(',', get_posts(array(
           'post_type'      => 'team',
           'posts_per_page' => -1,
           'order'          => 'ASC',
           'orderby'        => 'title',
-          'season'         => isset($params['season']) ? "season-{$season}": 'current',
+          'season'         => isset($params['season']) && $params['season'] !== $pxl->season['number'] ? "season-{$season}": 'current',
           'fields'         => 'ids'
         )));
         
