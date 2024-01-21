@@ -103,7 +103,7 @@
     html2canvas(clone, {
       width: clone.clientWidth,
       height: clone.clientHeight,
-      scale: clone.clientWidth == 1920 ? 1 : 2,
+      scale: 1,
       useCORS: true,
       imageTimeout: 0,
       allowTaint: true
