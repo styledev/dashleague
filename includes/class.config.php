@@ -47,10 +47,10 @@
         the_field('scripts_body_start', 'options');
       }
       public function action_wp_head() {
-        // echo '
-        //   <link rel="preconnect" href="https://fonts.gstatic.com">
-        //   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600&family=Yantramanav:wght@500;700&display=swap" rel="stylesheet">
-        // ';
+        echo '
+          <link rel="preconnect" href="https://fonts.gstatic.com">
+          <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@200;400;600&family=Yantramanav:wght@500;700&display=swap" rel="stylesheet">
+        ';
         
         $this->css_inline('critical.css');
         
