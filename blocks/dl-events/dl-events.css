@@ -18,7 +18,7 @@
 .event__vs a img{display:block;}
 /*.event__details{text-align:center;}*/
 
-.event__details,
+.event__details{flex:0 0 30%;}
 .event__actions{flex:0 0 25%;}
 .event__vs{flex:0 1 auto;justify-content:center;}
 .event__vs a{min-width:75px;}
