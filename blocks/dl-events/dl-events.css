@@ -20,7 +20,7 @@
 
 .event__details,
 .event__actions{flex:0 0 25%;}
-.event__vs{flex:1 0 auto;justify-content:center;}
+.event__vs{flex:0 1 auto;justify-content:center;}
 .event__vs a{min-width:75px;}
 
 .event__title{color:initial;font-family:'Oswald',sans-serif;font-size:24px;font-weight:600;}
@@ -35,7 +35,7 @@
 @media( max-width:780px ) {
   .event{padding:10px;}
   .event__vs span{padding:0 .5em;}
-  .event__actions{min-width:175px;}
+  .event__actions{min-width:100%;}
   .event__actions a, .event__actions button{padding:0.5em 1em;}
 }
 @media( max-width:480px ) {

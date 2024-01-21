@@ -353,7 +353,7 @@
   @media( max-width:780px ) {
     .event{padding:10px;}
     .event__vs span{padding:0 .5em;}
-    .event__actions{min-width:175px;}
+    .event__actions{min-width:100%;}
     .event__actions a, .event__actions button{padding:0.5em 1em;}
   }
   @media( max-width:480px ) {
