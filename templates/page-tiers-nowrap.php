@@ -12,7 +12,7 @@
   }
   
   $sizes = [
-    'discord' => [ 'height' => 619, 'width' => 1100, 'heading_top' => 13, 'heading_size' => 48, 'gap' => 49, 'grid' => '75px 57px 54px 35px', 'sides' => 58, 'bottom' => 111, 'top' => 100, 'size' => 20 ],
+    'discord' => [ 'height' => 619, 'width' => 1100, 'heading_top' => 8, 'heading_size' => 48, 'gap' => 49, 'grid' => '75px 57px 54px 35px', 'sides' => 58, 'bottom' => 111, 'top' => 100, 'size' => 20 ],
     'obs' => [ 'height' => 1080, 'width' => 1920, 'heading_top' => 13, 'heading_size' => 72, 'gap' => 81, 'grid' => '150px 114px 108px 70px', 'sides' => 100, 'bottom' => 192, 'top' => 173, 'size' => 42 ],
   ];
 ?>
