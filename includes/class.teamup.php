@@ -93,7 +93,8 @@
           
           if ( $stream ) {
             $casted_by = isset($event->who) ? $event->who : 'DLN';
-            $link = sprintf('<a href="%s" class="btn btn--dln" target="_blank">Casting by %s @ DLN</a>', $stream, $casted_by, $network);
+            $tense     = ( $start->format('d') > $day || $start->format('d') == $day ) ? 'Casting' : 'Casted';
+            $link      = sprintf('<a href="%s" class="btn btn--dln" target="_blank">%s by %s @ DLN</a>', $stream, $tense, $casted_by, $network);
           }
           else {
             $diff = date_diff($now, $start);
@@ -154,7 +155,7 @@
           if ( $start->format('d') == $day ) {array_push($events['Matches Today'], $match);}
           else if ( $start->format('d') - $day == 1 ) array_push($events['Matches Tomorrow'], $match);
           else if ( !$diff->invert ) array_push($events['Upcoming Matches'], $match);
-          // else if ( $diff->invert ) array_push($events['Past Matches'], $match);
+          else if ( $diff->invert ) array_push($events['Past Matches'], $match);
         }
         
         return $events;
