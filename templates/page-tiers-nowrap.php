@@ -21,14 +21,14 @@
       'stats'        => FALSE,
       'height'       => 1020,
       'width'        => 684,
-      'heading_top'  => 290,
+      'heading_top'  => 263,
       'heading_size' => 48,
       'gap'          => 0,
       'grid'         => '1fr',
       'sides'        => 41,
-      'bottom'       => 80,
-      'top'          => 430,
-      'size'         => 28,
+      'bottom'       => 90,
+      'top'          => 415,
+      'size'         => 24,
     ],
     'discord' => [
       'stats'        => TRUE,
@@ -179,25 +179,23 @@
       );
     }
   ?>
-  
-  
 </div>
 
 <script>
   var boxes = document.querySelectorAll('.box');
-
-  // boxes.forEach((box) => {
-  //   var clone = box.querySelector('.clone');
-  //
-  //   html2canvas(clone, {
-  //     width: clone.clientWidth,
-  //     height: clone.clientHeight,
-  //     scale: 1,
-  //     useCORS: true,
-  //     imageTimeout: 0,
-  //     allowTaint: true
-  //   }).then(function(canvas) {
-  //     box.appendChild(canvas);
-  //   });
-  // });
+  
+  boxes.forEach((box) => {
+    var clone = box.querySelector('.clone');
+    
+    html2canvas(clone, {
+      width: clone.clientWidth,
+      height: clone.clientHeight,
+      scale: 1,
+      useCORS: true,
+      imageTimeout: 0,
+      allowTaint: true
+    }).then(function(canvas) {
+      box.appendChild(canvas);
+    });
+  });
 </script>
