@@ -57,6 +57,8 @@
       'size'         => 42
     ],
   ];
+  
+  if ( isset($_GET['size']) ) $sizes = [$_GET['size'] => $sizes[$_GET['size']]];
 ?>
 <script src="<?php echo RES ?>/js/html2canvas.min.js"></script>
 
