@@ -18,6 +18,7 @@
   
   $sizes = [
     'hd'      => [
+      'filename'     => 'Lobby_CenterVertical',
       'stats'        => FALSE,
       'height'       => 1020,
       'width'        => 684,
@@ -31,6 +32,7 @@
       'size'         => 24,
     ],
     'discord' => [
+      'filename'     => 'dl-standings',
       'stats'        => TRUE,
       'height'       => 619,
       'width'        => 1100,
@@ -44,6 +46,7 @@
       'size'         => 20
     ],
     'obs'     => [
+      'filename'     => 'dl-standings-streaming',
       'stats'        => TRUE,
       'height'       => 1080,
       'width'        => 1920,
@@ -162,7 +165,7 @@
       
       printf(
         '
-          <div class="box box--%s">
+          <div class="box box--%s" data-filename="%s">
             %s
             <div class="clone">
               <div class="title">STANDINGS S%s C%s</div>
@@ -173,7 +176,7 @@
             </div>
           </div>
         ',
-        $type,
+        $type, $args['filename'],
         $styles,
         $season, $cycle,
         $tiers_rows,
@@ -198,6 +201,18 @@
       allowTaint: true
     }).then(function(canvas) {
       box.appendChild(canvas);
+      
+      canvas.addEventListener('click', (e) => {
+        canvas.toBlob(function(blob) {
+          canvas
+          var a   = document.createElement('a'),
+              url = URL.createObjectURL(blob);
+              
+          a.download = box.dataset.filename + '.png';
+          a.href = url;
+          a.click();
+        });
+      });
     });
   });
 </script>

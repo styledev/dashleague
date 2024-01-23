@@ -4,11 +4,11 @@
   $pxl->season_dates();
   $cycle = $pxl->cycle;
   
-  $teams = isset($_GET['teams']) ? $_GET['teams'] : array();
+  $versus = isset($_GET['teams']) ? $_GET['teams'] : array();
   
-  if ( empty($teams) ) exit;
+  if ( empty($versus) ) exit;
   
-  $names = explode('-', $teams);
+  $names = explode('-', $versus);
   $teams = get_posts(array(
     'post_type'     => 'team',
     'post_name__in' => $names,
@@ -16,8 +16,8 @@
   ));
   
   $sizes = [
-    'yt'  => [ 'height' => 720, 'width' => 1280, 'logo' => 350, 'team_top' => 276, 'team_a' => 165, 'team_b' => 765 ],
-    'obs' => [ 'height' => 1080, 'width' => 1920, 'logo' => 512, 'team_top' => 406, 'team_a' => 248, 'team_b' => 1148 ],
+    'yt'  => [ 'filename' => "dl-match-{$versus}-thumbnail", 'height' => 720, 'width' => 1280, 'logo' => 350, 'team_top' => 276, 'team_a' => 165, 'team_b' => 765 ],
+    'obs' => [ 'filename' => "dl-match-{$versus}", 'height' => 1080, 'width' => 1920, 'logo' => 512, 'team_top' => 406, 'team_a' => 248, 'team_b' => 1148 ],
   ]
 ?>
 <script src="<?php echo RES ?>/js/html2canvas.min.js"></script>
@@ -56,14 +56,14 @@
       
       printf(
         '
-          <div class="box box--%s">
+          <div class="box box--%s" data-filename="dl-match-%s">
             <div class="clone">
               %s
               <img src="%s" width="%s" height="%s" alt="DL %1$s">
             </div>
           </div>
         ',
-        $type,
+        $type, $args['filename'],
         $team_logos,
         RES . "/images/dl-team-vs-team-{$type}.jpg",
         $args['width'], $args['height']
@@ -87,6 +87,18 @@
       allowTaint: true
     }).then(function(canvas) {
       box.appendChild(canvas);
+      
+      canvas.addEventListener('click', (e) => {
+        canvas.toBlob(function(blob) {
+          canvas
+          var a   = document.createElement('a'),
+              url = URL.createObjectURL(blob);
+              
+          a.download = box.dataset.filename + '.png';
+          a.href = url;
+          a.click();
+        });
+      });
     });
   })
 </script>
