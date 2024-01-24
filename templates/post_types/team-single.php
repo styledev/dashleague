@@ -132,10 +132,9 @@
     <div class="events__wrapper wp-block-group__inner-container">
       <div class="events__container event__container--matches-today alignwide" data-title="Matches & Scoreboards">
         <?php
-        foreach ($events['Matches Today'] as $title => $event) echo $event;
-        foreach ($events['Matches Tomorrow'] as $title => $event) echo $event;
-        foreach ($events['Upcoming Matches'] as $title => $event) echo $event;
-          
+          foreach ($events['Matches Today'] as $title => $event) echo $event;
+          foreach ($events['Matches Tomorrow'] as $title => $event) echo $event;
+          foreach ($events['Upcoming Matches'] as $title => $event) echo $event;
           foreach ($matches as $matchID => $match) {
             $status = 'display';
             include(PARTIAL . '/match.php');
