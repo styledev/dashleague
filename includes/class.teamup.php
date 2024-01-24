@@ -86,6 +86,7 @@
           
           $start = DateTime::createFromFormat("Y-m-d\TH:i:sT", $event->start_dt);
           $start->setTimeZone(new DateTimeZone($user_tz));
+          $diff = date_diff($now, $start);
           
           $network      = 'dln';
           $network_link = 'https://www.youtube.com/c/DashLeagueNetwork';
@@ -97,7 +98,6 @@
             $link      = sprintf('<a href="%s" class="btn btn--dln" target="_blank">%s by %s @ DLN</a>', $stream, $tense, $casted_by, $network);
           }
           else {
-            $diff = date_diff($now, $start);
             $link = sprintf('<button class="btn btn--ghost btn--none">%s</button>', ($diff->invert ? 'Not Casted' : 'May not be Casted'));
           }
           
