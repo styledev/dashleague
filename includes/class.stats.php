@@ -1030,6 +1030,7 @@
       }
       private function game_players_sort( &$game ) {
         foreach ($game['teams'] as $team => $data) {
+          if ( !isset($data['players']) ) continue;
           $score = array_column($data['players'], 'score');
           array_multisort($score, SORT_DESC, $data['players']);
           $game['teams'][$team]['players'] = array_slice($data['players'], 0, 5);

@@ -3,6 +3,23 @@
   $team_a     = $match['teams'][$team[0]];
   $team_b     = $match['teams'][$team[1]];
   
+  
+  $date = $match['datetime']->format('Ymd');
+  
+  $streams = [
+    "{$date}-{$team_a['name']}-{$team_b['name']}",
+    "{$date}-{$team_b['name']}-{$team_a['name']}"
+  ];
+  
+  $stream = FALSE;
+  
+  foreach ($streams as $id) {
+    if ( isset($events['Past Matches'][$id]) ) {
+      $stream = $events['Past Matches'][$id];
+      break;
+    }
+  }
+  
   $logo_a = $team_a['logo'] ? sprintf('<a href="%s" target="_blank">%s</a><span>VS</span>', $team_a['link'], $team_a['logo']) : '';
   $logo_b = $team_b['logo'] ? sprintf('<a href="%s" target="_blank">%s</a>', $team_b['link'], $team_b['logo']) : '';
   
@@ -11,38 +28,45 @@
   $recorded   = empty($match['recorded']) ? '' : '<span class="event__recorded" title="MMR Approved"><i class="fa-solid fa-check-circle"></i></span>';
   $scoreboard = is_null($status) || $status == 'process' || $status == 'display';
   $action     = $scoreboard ? '<button class="btn btn--ghost" data-action="show" data-target="games" data-toggle="btn--ghost active" data-text="Scoreboards" data-active="Close"></button>' : '<div class="event__approved">Approved</div>';
+  
+  if ( $stream ) {
+    $action = sprintf(
+      '%s&nbsp;<a href="%s" class="btn btn--dln" target="_blank">Watch Match</a>',
+      $action,
+      $stream
+    );
+  }
+  
   $collapsed  = $status == 'process' ? '' : ' games--collapsed';
 ?>
 
 <div class="event">
   <?php
     printf('
+      <div class="event__vs">
+        %s %s
+      </div>
       <div class="event__details">
         <div class="event__title">
-          <span class="event__team event__team--%2$s">%s</span>
+          <span class="event__team event__team--%3$s">%s</span>
           <span class="event__score event__score--%s">[%s]</span>
           <span>vs</span>
-          <span class="event__team event__team--%5$s">%s</span>
+          <span class="event__team event__team--%7$s">%s</span>
           <span class="event__score event__score--%s">[%s]</span>
         </div>
         <div class="event__datetime" data-date="%s">
           <span class="event__date">%s</span><span class="event__time">%s</span>
         </div>
       </div>
-      <div class="event__vs">
-        %s
-        %s
-      </div>
       <div class="event__actions">
         %s
       </div>',
+      $logo_a, $logo_b,
       $team_a['name'], ($team_a['name'] == $winner ? 'winner' : 'loser'), $team_a['score'],
       $team_b['name'], ($team_b['name'] == $winner ? 'winner' : 'loser'), $team_b['score'],
       $match['datetime']->format('Y-m-d H:i:s'),
       $match['datetime']->format('F jS, Y'),
       $recorded,
-      $logo_a,
-      $logo_b,
       $action
     );
   ?>

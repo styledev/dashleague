@@ -56,7 +56,7 @@
         
         return $items;
       }
-      public function matches_upcoming() {
+      public function matches_upcoming( $team = FALSE ) {
         global $pxl;
         
         if ( !isset($pxl->teamup) ) $pxl->teamup = new teamup();
@@ -80,11 +80,13 @@
         if ( strpos($user_tz, 'UTC') > -1 ) $user_tz = str_replace('UTC', '', $user_tz);
         
         foreach ($upcoming as $event) {
-          if ( empty($event->title) ) continue;
+          if ( empty($event->title) || ($team && strpos(strtolower($event->title), strtolower($team)) === FALSE )) continue;
           
           if ( strlen($event->start_dt) != 25 ) $event->start_dt .= '-04:00';
           
           $start = DateTime::createFromFormat("Y-m-d\TH:i:sT", $event->start_dt);
+          $slug  = sprintf('%s-%s', $start->format('Ymd'), preg_replace('/([\S]*) [\S] ([\S]*)/', '$1-$2', strtoupper($event->title)));
+          
           $start->setTimeZone(new DateTimeZone($user_tz));
           $diff = date_diff($now, $start);
           
@@ -152,10 +154,12 @@
             $link
           );
           
-          if ( $start->format('d') == $day ) {array_push($events['Matches Today'], $match);}
-          else if ( $start->format('d') - $day == 1 ) array_push($events['Matches Tomorrow'], $match);
-          else if ( !$diff->invert ) array_push($events['Upcoming Matches'], $match);
-          else if ( $diff->invert ) array_push($events['Past Matches'], $match);
+          if ( $start->format('d') == $day ) $events['Matches Today'][$slug] = $match;
+          else if ( $start->format('d') - $day == 1 ) $events['Matches Tomorrow'][$slug] = $match;
+          else if ( !$diff->invert ) $events['Upcoming Matches'][$slug] = $match;
+          else if ( $diff->invert ) {
+            $events['Past Matches'][$slug] = $team ? $stream : $match;
+          }
         }
         
         return $events;

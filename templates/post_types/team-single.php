@@ -1,4 +1,6 @@
 <?php
+  global $pxl;
+  
   wp_enqueue_script('api');
   wp_enqueue_style('swiper.min');
   wp_enqueue_script('swiper.min');
@@ -47,6 +49,9 @@
   }
   
   $servers = is_array($servers) ? implode('</span><span class="server">', $servers) : '';
+  
+  if ( !isset($pxl->teamup) ) $pxl->teamup = new teamup();
+  $events = $pxl->teamup->matches_upcoming($team);
 ?>
 <div class="content">
   <div class="bar wp-block-group alignfull">
@@ -122,17 +127,20 @@
       </div>
     </div>
   </div>
-  <div class="matches wp-block-group alignfull">
-    <div class="wp-block-group__inner-container">
-      <div class="matches__container alignwide">
-        <div class="events__container event__container--matches-today alignwide" data-title="Matches & Scoreboards">
-          <?php
-            foreach ($matches as $matchID => $match) {
-              $status = 'display';
-              include(PARTIAL . '/match.php');
-            }
-          ?>
-        </div>
+  
+  <div class="matches wp-block-group alignwide">
+    <div class="events__wrapper wp-block-group__inner-container">
+      <div class="events__container event__container--matches-today alignwide" data-title="Matches & Scoreboards">
+        <?php
+        foreach ($events['Matches Today'] as $title => $event) echo $event;
+        foreach ($events['Matches Tomorrow'] as $title => $event) echo $event;
+        foreach ($events['Upcoming Matches'] as $title => $event) echo $event;
+          
+          foreach ($matches as $matchID => $match) {
+            $status = 'display';
+            include(PARTIAL . '/match.php');
+          }
+        ?>
       </div>
     </div>
   </div>

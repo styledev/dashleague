@@ -1,6 +1,7 @@
 <?php /* Template Name: Matches */
   wp_enqueue_script('api');
   $cycles = $pxl->stats->cycles();
+  
   rsort($cycles);
   
   $maps = array(
