@@ -163,17 +163,18 @@
             $events['Past Matches'][$slug] = !empty($args['team']) ? $stream : $match;
             
             if ( $stats && !(isset($event->custom->status) && $event->custom->status[0] = 'cancelled') ) {
-              $startdate = DateTime::createFromFormat("Y-m-d\TH:i:sT", $event->start_dt);
-              $day  = $startdate->format('Ymd');
-              $startdate->modify('+1 day');
-              $nday = $startdate->format('Ymd');
+              $date = DateTime::createFromFormat("Y-m-d\TH:i:sT", $event->start_dt);
+              $sday = $date->modify('-1 day')->format('Ymd');
+              $eday = $date->modify('+1 day')->format('Ymd');
               
               $query = $wpdb->prepare(
-                "SELECT matchID FROM dl_game_stats WHERE matchID = '%s' OR matchID = '%s' OR matchID = '%s' OR matchID = '%s'",
-                "{$day}={$teams[0]}<>{$teams[2]}",
-                "{$day}={$teams[2]}<>{$teams[0]}",
-                "{$nday}={$teams[0]}<>{$teams[2]}",
-                "{$nday}={$teams[2]}<>{$teams[0]}"
+                "SELECT matchID FROM dl_game_stats WHERE (datetime >= '%s' AND datetime <= '%s') AND (matchID LIKE '%s' OR matchID = '%s' OR matchID = '%s' OR matchID = '%s')",
+                $date->modify('-1 day')->format('Y-m-d') . " 00:00:00",
+                $date->modify('+2 day')->format('Y-m-d') . " 23:59:59",
+                "%{$teams[0]}<>{$teams[2]}%",
+                "%{$teams[2]}<>{$teams[0]}%",
+                "%{$teams[0]}<>{$teams[2]}%",
+                "%{$teams[2]}<>{$teams[0]}%"
               );
               
               $matchIDs = $wpdb->get_col($query);
@@ -182,7 +183,8 @@
                 $pxl->stats->dl_game_ids([
                   'clan_a'      => $teams[0],
                   'clan_b'      => $teams[2],
-                  'range_start' => $startdate->format('Y-m-d')
+                  'range_start' => $date->modify('-2 day')->format('Y-m-d'),
+                  'range_end'   => $date->modify('+2 day')->format('Y-m-d'),
                 ]);
               }
             }

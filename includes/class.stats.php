@@ -214,12 +214,11 @@
           $response['match'] = FALSE;
           
           $fields = array_filter($_GET);
-          fns::error($fields);
           
           if ( isset($fields['game_ids']) ) $response = $this->stats_games();
           else if ( count($fields) >= 3 ) {
             $data = $this->dl_game_ids($fields);
-            fns::error($data);
+            
             if ( is_array($data) ) $response['match'] = $data;
             else {
               $response['error'] = $data;
@@ -760,8 +759,10 @@
         $match   = $wpdb->get_results($wpdb->prepare("SELECT * FROM dl_game_stats WHERE matchID = '%s'", $matchID), ARRAY_A);
         
         if ( !$match ) {
-          $range_start = DateTime::createFromFormat("Y-m-d", "{$params['range_start']}");
-          $params['range_end'] = $range_start->modify('+1 day')->format('Y-m-d');
+          if ( !isset($params['range_end']) ) {
+            $range_start = DateTime::createFromFormat("Y-m-d", "{$params['range_start']}");
+            $params['range_end'] = $range_start->modify('+1 day')->format('Y-m-d');
+          }
           
           $data = $this->api_call('game_stats/get_game_id', $params);
           
