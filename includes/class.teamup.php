@@ -87,7 +87,7 @@
           if ( strlen($event->start_dt) != 25 ) $event->start_dt .= '-04:00';
           
           $start = DateTime::createFromFormat("Y-m-d\TH:i:sT", $event->start_dt);
-          $slug  = sprintf('%s-%s', $start->format('Ymd'), preg_replace('/([\S]*) [\S] ([\S]*)/', '$1-$2', strtoupper($event->title)));
+          $slug  = sprintf('%s-%s', $start->format('Ymd'), preg_replace('/([\S]*) [\S]* ([\S]*)/', '$1-$2', strtoupper($event->title)));
           
           $start->setTimeZone(new DateTimeZone($user_tz));
           $diff = date_diff($now, $start);
@@ -160,32 +160,34 @@
           else if ( $start->format('d') - $day == 1 ) $events['Matches Tomorrow'][$slug] = $match;
           else if ( !$diff->invert ) $events['Upcoming Matches'][$slug] = $match;
           else if ( $diff->invert ) {
-            $events['Past Matches'][$slug] = !empty($args['team']) ? $stream : $match;
-            
-            if ( $stats && !(isset($event->custom->status) && $event->custom->status[0] = 'cancelled') ) {
-              $date = DateTime::createFromFormat("Y-m-d\TH:i:sT", $event->start_dt);
-              $sday = $date->modify('-1 day')->format('Ymd');
-              $eday = $date->modify('+1 day')->format('Ymd');
+            if ( !(isset($event->custom->status) && $event->custom->status[0] == 'cancelled') ) {
+              $events['Past Matches'][$slug] = !empty($args['team']) ? $stream : $match;
               
-              $query = $wpdb->prepare(
-                "SELECT matchID FROM dl_game_stats WHERE (datetime >= '%s' AND datetime <= '%s') AND (matchID LIKE '%s' OR matchID = '%s' OR matchID = '%s' OR matchID = '%s')",
-                $date->modify('-1 day')->format('Y-m-d') . " 00:00:00",
-                $date->modify('+2 day')->format('Y-m-d') . " 23:59:59",
-                "%{$teams[0]}<>{$teams[2]}%",
-                "%{$teams[2]}<>{$teams[0]}%",
-                "%{$teams[0]}<>{$teams[2]}%",
-                "%{$teams[2]}<>{$teams[0]}%"
-              );
+              if ( $stats ) {
+                $date = DateTime::createFromFormat("Y-m-d\TH:i:sT", $event->start_dt);
+                $sday = $date->modify('-1 day')->format('Ymd');
+                $eday = $date->modify('+1 day')->format('Ymd');
               
-              $matchIDs = $wpdb->get_col($query);
+                $query = $wpdb->prepare(
+                  "SELECT matchID FROM dl_game_stats WHERE (datetime >= '%s' AND datetime <= '%s') AND (matchID LIKE '%s' OR matchID = '%s' OR matchID = '%s' OR matchID = '%s')",
+                  $date->modify('-1 day')->format('Y-m-d') . " 00:00:00",
+                  $date->modify('+2 day')->format('Y-m-d') . " 23:59:59",
+                  "%{$teams[0]}<>{$teams[2]}%",
+                  "%{$teams[2]}<>{$teams[0]}%",
+                  "%{$teams[0]}<>{$teams[2]}%",
+                  "%{$teams[2]}<>{$teams[0]}%"
+                );
               
-              if ( empty($matchIDs) ) {
-                $pxl->stats->dl_game_ids([
-                  'clan_a'      => $teams[0],
-                  'clan_b'      => $teams[2],
-                  'range_start' => $date->modify('-2 day')->format('Y-m-d'),
-                  'range_end'   => $date->modify('+2 day')->format('Y-m-d'),
-                ]);
+                $matchIDs = $wpdb->get_col($query);
+              
+                if ( empty($matchIDs) ) {
+                  $pxl->stats->dl_game_ids([
+                    'clan_a'      => $teams[0],
+                    'clan_b'      => $teams[2],
+                    'range_start' => $date->modify('-2 day')->format('Y-m-d'),
+                    'range_end'   => $date->modify('+2 day')->format('Y-m-d'),
+                  ]);
+                }
               }
             }
           }

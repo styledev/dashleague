@@ -12,15 +12,17 @@
   
   $stream = FALSE;
   
-  foreach ($streams as $id) {
-    if ( isset($events['Past Matches'][$id]) ) {
-      $stream = $events['Past Matches'][$id];
-      break;
+  if ( !empty($events['Past Matches']) ) {
+    foreach ($streams as $id) {
+      if ( !empty($events['Past Matches'][$id]) ) {
+        $stream = $events['Past Matches'][$id];
+        break;
+      }
     }
   }
   
-  $logo_a = $team_a['logo'] ? sprintf('<a href="%s" target="_blank">%s</a><span>VS</span>', $team_a['link'], $team_a['logo']) : '';
-  $logo_b = $team_b['logo'] ? sprintf('<a href="%s" target="_blank">%s</a>', $team_b['link'], $team_b['logo']) : '';
+  $logo_a = $team_a['logo'] ? sprintf('<a href="%s">%s</a><span>VS</span>', $team_a['link'], $team_a['logo']) : '';
+  $logo_b = $team_b['logo'] ? sprintf('<a href="%s">%s</a>', $team_b['link'], $team_b['logo']) : '';
   
   $scores     = array_column($match['teams'], 'score', 'name'); arsort($scores);
   $winner     = array_search(max($scores), $scores);
