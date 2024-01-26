@@ -10,10 +10,10 @@
   
   if ( $time = get_field('teamup') ) {
     $pxl->teamup = new teamup();
-    $upcoming = $pxl->teamup->events_upcoming();
-    $pxl->teamup->datetimes = array_column($upcoming, 'start_dt');
+    $upcoming  = $pxl->teamup->events_upcoming();
+    $datetimes = array_column($upcoming, 'start_dt');
     
-    foreach ($pxl->teamup->datetimes as $dt) {
+    foreach ($datetimes as $dt) {
       if ( strlen($dt) != 25 ) $dt .= '-04:00';
       $datetime = DateTime::createFromFormat("Y-m-d\TH:i:sT", $dt);
       

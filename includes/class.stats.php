@@ -214,11 +214,12 @@
           $response['match'] = FALSE;
           
           $fields = array_filter($_GET);
+          fns::error($fields);
           
           if ( isset($fields['game_ids']) ) $response = $this->stats_games();
           else if ( count($fields) >= 3 ) {
             $data = $this->dl_game_ids($fields);
-            
+            fns::error($data);
             if ( is_array($data) ) $response['match'] = $data;
             else {
               $response['error'] = $data;

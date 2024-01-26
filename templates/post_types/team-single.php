@@ -51,7 +51,7 @@
   $servers = is_array($servers) ? implode('</span><span class="server">', $servers) : '';
   
   if ( !isset($pxl->teamup) ) $pxl->teamup = new teamup();
-  $events = $pxl->teamup->matches_upcoming($team);
+  $events = $pxl->teamup->matches_upcoming(['team' => $team]);
 ?>
 <div class="content">
   <div class="bar wp-block-group alignfull">

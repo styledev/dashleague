@@ -56,10 +56,12 @@
         
         return $items;
       }
-      public function matches_upcoming( $team = FALSE ) {
-        global $pxl;
+      public function matches_upcoming( $args = [] ) {
+        global $pxl, $wpdb;
         
         if ( !isset($pxl->teamup) ) $pxl->teamup = new teamup();
+        
+        $stats = (isset($_GET['stats']) && $_GET['stats'] == 'pull');
         
         $upcoming = array_reverse($pxl->teamup->events_upcoming());
         $offset   = get_option('gmt_offset'); if ( $offset == 0 ) $offset = "+0";
@@ -80,7 +82,7 @@
         if ( strpos($user_tz, 'UTC') > -1 ) $user_tz = str_replace('UTC', '', $user_tz);
         
         foreach ($upcoming as $event) {
-          if ( empty($event->title) || ($team && strpos(strtolower($event->title), strtolower($team)) === FALSE )) continue;
+          if ( empty($event->title) || (!empty($args['team']) && strpos(strtolower($event->title), strtolower($args['team'])) === FALSE )) continue;
           
           if ( strlen($event->start_dt) != 25 ) $event->start_dt .= '-04:00';
           
@@ -158,7 +160,32 @@
           else if ( $start->format('d') - $day == 1 ) $events['Matches Tomorrow'][$slug] = $match;
           else if ( !$diff->invert ) $events['Upcoming Matches'][$slug] = $match;
           else if ( $diff->invert ) {
-            $events['Past Matches'][$slug] = $team ? $stream : $match;
+            $events['Past Matches'][$slug] = !empty($args['team']) ? $stream : $match;
+            
+            if ( $stats && !(isset($event->custom->status) && $event->custom->status[0] = 'cancelled') ) {
+              $startdate = DateTime::createFromFormat("Y-m-d\TH:i:sT", $event->start_dt);
+              $day  = $startdate->format('Ymd');
+              $startdate->modify('+1 day');
+              $nday = $startdate->format('Ymd');
+              
+              $query = $wpdb->prepare(
+                "SELECT matchID FROM dl_game_stats WHERE matchID = '%s' OR matchID = '%s' OR matchID = '%s' OR matchID = '%s'",
+                "{$day}={$teams[0]}<>{$teams[2]}",
+                "{$day}={$teams[2]}<>{$teams[0]}",
+                "{$nday}={$teams[0]}<>{$teams[2]}",
+                "{$nday}={$teams[2]}<>{$teams[0]}"
+              );
+              
+              $matchIDs = $wpdb->get_col($query);
+              
+              if ( empty($matchIDs) ) {
+                $pxl->stats->dl_game_ids([
+                  'clan_a'      => $teams[0],
+                  'clan_b'      => $teams[2],
+                  'range_start' => $startdate->format('Y-m-d')
+                ]);
+              }
+            }
           }
         }
         

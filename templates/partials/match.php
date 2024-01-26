@@ -3,7 +3,6 @@
   $team_a     = $match['teams'][$team[0]];
   $team_b     = $match['teams'][$team[1]];
   
-  
   $date = $match['datetime']->format('Ymd');
   
   $streams = [
