@@ -121,16 +121,16 @@
             if ( in_array($team['name'], $diff) ) {
               if ( $up && isset($up[$team['name']]) ) $change = "&darr;";
               elseif ( $down && isset($down[$team['name']]) ) $change = "&uarr;";
-              else $change = '';
+              else $change = '&nbsp;';
             }
             else if ( $tiers_last ) {
               $pos_last = array_search($team['name'], array_keys($tier_last));
               
               if ( $pos < $pos_last ) $change = '+';
               elseif ($pos > $pos_last ) $change = '-';
-              else $change = '';
+              else $change = '&nbsp;';
             }
-            else $change = '';
+            else $change = '&nbsp;';
             
             if ( $args['stats'] ) {
               $teams[] = sprintf('<strong>%s</strong><span>%s</span><span>%s</span><span>%s</span>', $team['name'], $team['mmr'], $team['sr'], $change);
