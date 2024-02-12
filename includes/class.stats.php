@@ -471,7 +471,9 @@
                 
                 $team['players'][] = $player;
               }
-              else throw new Exception("[{$player['tag']}] {$player['name']}: no `player_id` found for gamer_id {$player['id']}.");
+              else {
+                throw new Exception("[{$player['tag']}] {$player['name']}: no `player_id` found for gamer_id {$player['id']}.");
+              }
             }
           }
           

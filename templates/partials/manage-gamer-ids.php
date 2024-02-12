@@ -43,7 +43,7 @@
   $cycles = $pxl->stats->cycles();
   
   if ( !empty($cycles) ) {
-    $cycle = array_pop($cycles);
+    $cycle = array_shift($cycles);
     $query['where'] = sprintf("gs.datetime >= '%s'", $cycle['start']);
   }
   
@@ -157,6 +157,8 @@
                 $status = sprintf('<button class="btn btn--small btn--ghost" data-data=\'%s\'>Fix Name: %s</button>', json_encode($player, JSON_HEX_APOS), $player['record']['name']);
               }
               
+              $link_team = isset($_teams[$player['tag']]) ? admin_url("post.php?post={$_teams[$player['tag']]}&action=edit") : $player['tag'];
+              
               printf('
                 <tr>
                   <td><a href="%s" target="_blank">%s</a></td>
@@ -168,7 +170,7 @@
                   <td>%d</td>
                   <td>%s</td>
                 </tr>',
-                admin_url("post.php?post={$_teams[$player['tag']]}&action=edit"),
+                $link_team,
                 $player['tag'],
                 admin_url("post.php?post={$player['record']['id']}&action=edit"),
                 $player['name'],
