@@ -15,7 +15,7 @@
         
         $this->type = $mmr_type;
         
-        // TODO: S5 change gain and gain_win
+        // CHANGED: S5 change gain and gain_win
         $this->vars = array(
           'gain_min_loss' => 5,
           'gain'          => $this->type == 'SR' ? 105 : 110,
@@ -36,7 +36,7 @@
             $this->match_info($data, $teams);
             
             /* Determine Rank Gain/Loss */
-              // TODO: S5 only run forfeits for SR
+              // CHANGED: S5 only run forfeits for SR
               $forfeit = $this->type == 'SR' ? $this->match_forfeit($data) : FALSE;
               
               if ( !$forfeit && !empty($data['info']['type']) ) {
@@ -45,14 +45,14 @@
                   $this->$mode_formula($data);
                   
                 /* Gain/Loss */
-                  // TODO : S5 use rank_gain (SR) and mmr
+                  // CHANGED : S5 use rank_gain (SR) and mmr
                   $var = $this->type == 'SR' ? 'rank_gain' : 'mmr';
                   $data['teams'][0][$var] = $this->formula_mmr($data['teams'][0]);
                   $data['teams'][1][$var] = $this->formula_mmr($data['teams'][1]);
               }
               
             /* Store MMR */
-              // TODO : S5 use rank_gain (SR) and mmr
+              // CHANGED : S5 use rank_gain (SR) and mmr
               $var = $this->type == 'SR' ? 'rank_gain' : 'mmr';
               if ( isset($data['teams'][0][$var]) ) $mmr[$data['teams'][0]['team_id']][] = $data['teams'][0][$var];
               if ( isset($data['teams'][1][$var]) ) $mmr[$data['teams'][1]['team_id']][] = $data['teams'][1][$var];
@@ -62,7 +62,7 @@
                 unset($team['pushrate']);
                 unset($team['rank']);
                 
-                // TODO : S5 use rank_gain (SR) and mmr
+                // CHANGED : S5 use rank_gain (SR) and mmr
                 unset($team['rank_gain']);
                 unset($team['mmr']);
                 
@@ -102,7 +102,7 @@
                     if ( count($value) ) {
                       $value = array_sum($value) / count($value);
                       
-                      // TODO: S5 don't round up or down for MMR and use a different round formula
+                      // CHANGED: S5 don't round up or down for MMR and use a different round formula
                       if ( $this->type == 'SR' ) {
                         if ( $value > 0 && $value < 5 ) $value = 5;
                         else if ( $value > -5 && $value < 0 ) $value = -5;
@@ -114,7 +114,7 @@
                         else if ( $team['team_id'] != $data['winner'] && $value > 0 ) $value *= -1;
                       }
                       
-                      // TODO : S5 use rank_gain (SR) and mmr
+                      // CHANGED : S5 use rank_gain (SR) and mmr
                       $var = $this->type == 'SR' ? 'rank_gain' : 'mmr';
                       $team[$var] = $value;
                       
@@ -123,7 +123,7 @@
                   }
                   
                 // Store Team Data
-                  // TODO : S5 only save on mmr
+                  // CHANGED : S5 only save on mmr
                   if ( $this->type == 'SR' ) {
                     $this->store_team_stat($data['info'], $team);
                   }
@@ -145,7 +145,7 @@
             if ( count($gain_loss) ) {
               $value = array_sum($gain_loss) / count($gain_loss);
               
-              // TODO: S5 don't round up or down for MMR and use a different round formula
+              // CHANGED: S5 don't round up or down for MMR and use a different round formula
               if ( $this->type == 'SR' ) {
                 if ( $team_id == $match['winner'] && $value < 5 ) $value = 5;
                 else if ( $team_id != $match['winner'] && $value > -5 ) $value = -5;
@@ -168,11 +168,10 @@
           $tier       = $wpdb->get_var($wpdb->prepare("SELECT tier FROM dl_tiers WHERE season = %d AND cycle = %d AND team_id = %d", $pxl->season['number'], $this->cycle['cycle'], $data['teams'][1]['team_id']));
           $tier_teams = implode(', ', $wpdb->get_col($wpdb->prepare("SELECT team_id FROM dl_tiers WHERE season = %d AND cycle = %d AND tier = '%s'", $pxl->season['number'], $this->cycle['cycle'], $tier)));
           
-          // TODO: S5 forefeits only affect SR and uses max rank_gain from tier for the cycle
-          $sql = $wpdb->prepare("SELECT ROUND(MAX(rank_gain)) as tier_max FROM dl_teams WHERE season = %d AND datetime >= '%s' AND datetime <= '%s' AND team_id IN ({$tier_teams}) AND rank_gain > 0", $pxl->season['number'], $this->cycle['start'], $this->cycle['end']);
+          // CHANGED: S5 forefeits only affect SR and uses max rank_gain from tier for the cycle
+          $sql     = $wpdb->prepare("SELECT ROUND(MAX(rank_gain)) as tier_max FROM dl_teams WHERE season = %d AND datetime >= '%s' AND datetime <= '%s' AND team_id IN ({$tier_teams}) AND rank_gain > 0", $pxl->season['number'], $this->cycle['start'], $this->cycle['end']);
           $mmr_max = $wpdb->get_var($sql);
-          
-          $mmr_avg    = array(
+          $mmr_avg = array(
             'tier'     => $wpdb->get_var($wpdb->prepare("SELECT ROUND(AVG(rank_gain)) as tier_avg FROM dl_teams WHERE season = %d AND datetime >= '%s' AND datetime <= '%s' AND team_id IN ({$tier_teams}) AND rank_gain > 0", $pxl->season['number'], $this->cycle['start'], $this->cycle['end'])),
             'rolling'  => $wpdb->get_var($wpdb->prepare("SELECT ROUND(AVG(rank_gain)) as tier_avg FROM dl_teams WHERE season = %d AND datetime >= '%s' AND datetime <= '%s' AND team_id IN ({$tier_teams}) AND rank_gain > 0", $pxl->season['number'], $this->rolling['start'], $this->cycle['end'])),
             'team'     => $wpdb->get_var($wpdb->prepare("SELECT ROUND(AVG(rank_gain)) as tier_avg FROM dl_teams WHERE season = %d AND team_id = %d AND rank_gain > 0", $pxl->season['number'], $data['teams'][1]['team_id'])),
@@ -281,7 +280,7 @@
       
     // Formulas
       private function formula_mmr( $team ) {
-        // TODO: S5 change formula_mmr
+        // CHANGED: S5 change formula_mmr
         if ( $this->type == 'SR' ) {
           if ( $team['outcome'] ) return MAX(($team['score'] - $team['rank']['escore']) * $this->vars['k'], $this->vars['gain_min_loss']);
           else return MIN(($team['score'] - $team['rank']['escore']) * $this->vars['k'], -$this->vars['gain_min_loss']);
@@ -367,11 +366,11 @@
       private function team_rank( $team_id ) {
         global $pxl, $wpdb;
         
-        // TODO: S5 only use `mmr` not rank_gain (aka SR)
+        // CHANGED: S5 only use `mmr` not rank_gain (aka SR)
         $sql  = $wpdb->prepare("SELECT ROUND(SUM(mmr)) FROM dl_teams WHERE team_id = %d AND season = %d AND datetime <= '%s'", $team_id, $pxl->season['number'], $this->cycle['start']);
         $rank = $wpdb->get_var($sql);
         
-        // TODO: S5 SR can start at 1000 for all teams. (MMR uses tiers base)
+        // CHANGED: S5 SR can start at 1000 for all teams. (MMR uses tiers base)
         if ( $this->type == 'SR' ) $base = 1000;
         else {
           // Get Team's First Cycle Tier

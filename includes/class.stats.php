@@ -1447,7 +1447,7 @@
         global $pxl, $wpdb;
         
         $season = $pxl->season['number'];
-        // todo fix 1000
+        
         $sql = "
           SELECT r1.name, sum(r1.MMR) + 1000 as mmr, count(r1.Matches) as matches, sum(r1.wins) as won, count(r1.Matches) - sum(r1.wins) as lost, ROUND(SUM(r1.kills)/SUM(r1.deaths), 2) as kd, SEC_TO_TIME(SUM(time_to_sec(r1.time))) as time_played
           FROM (

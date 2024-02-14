@@ -574,8 +574,6 @@
           else if ( $now >= $start && $now <= $end ) {
             $diff    = date_diff($now, $start);
             $week    = floor($diff->days / 7);
-            
-            // TODO: Remove after Season 5: Had to add a third week to cycle one for delay
             $weeks   = array('one', 'one', 'two', 'two', 'three', 'three', 'four', 'four', 'five', 'five', 'six', 'six');
             $numbers = array('zero' => 0, 'one' => 1, 'two' => 2, 'three' => 3, 'four' => 4, 'five' => 5, 'six' => 6, 'six' => 6);
             

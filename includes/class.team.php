@@ -24,7 +24,7 @@
         global $pxl, $wpdb;
         
         $season = isset($_GET['season']) ? $_GET['season'] : $pxl->season['number'];
-        // TODO fix 1000
+        
         $sql = $wpdb->prepare("
           SELECT sum(r1.mmr) + 1000 as mmr, count(r1.matches) as matches, sum(r1.wins) as wins, count(r1.matches) - sum(r1.wins) as losses
           FROM (

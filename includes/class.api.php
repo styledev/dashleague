@@ -93,7 +93,6 @@
           'fields'         => 'ids'
         )));
         
-        // TODO fix 1000
         $sql = $wpdb->prepare("
           SELECT r1.name, sum(r1.mmr) +1000 as mmr, count(r1.matches) as matches, sum(r1.wins) as wins, count(r1.matches) - sum(r1.wins) as losses
           FROM (

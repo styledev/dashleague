@@ -1,5 +1,16 @@
 .block_compensated table{border-collapse:collapse;font-size:12px;width:100%;}
+.block_compensated table + table{margin-top:3em;}
+.block_compensated table thead th{background:#eee;}
+.block_compensated th{font-family:'Oswald',sans-serif;font-weight:800!important;}
 .block_compensated th, .block_compensated td{border:1px solid #ccc;padding:0.25rem;}
 .block_compensated th{white-space:nowrap;}
 .block_compensated td[align="center"]{text-align:center;}
-.block_compensated tbody tr:nth-child(odd){background:#eee;}
+.block_compensated tbody tr:nth-child(even){background:#eee;}
+
+.block_compensated table .team{width:50px;}
+.block_compensated table .players{font-weight:normal;width:150px;}
+.block_compensated table .sponsor{width:120px;}
+.block_compensated table .comp{width:250px;}
+.block_compensated table .req{width:250px;}
+.block_compensated table .term{width:150px;}
+.block_compensated table .date{white-space:nowrap;width:1%;text-align:center;}

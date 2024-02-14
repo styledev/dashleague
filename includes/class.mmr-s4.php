@@ -131,7 +131,7 @@
       }
       private function match_forfeit( &$data ) {
         
-        // TODO: need forfeits to change SR and not MMR
+        // CHANGED: need forfeits to change SR and not MMR
         
         global $wpdb, $pxl;
         
@@ -335,7 +335,7 @@
         $data   = array_merge($match, $team);
         $result = $wpdb->insert('dl_teams', $data);
       }
-      private function team_rank( $team_id, $tier = FALSE ) { // TODO: Need to bring the team's current tier into here
+      private function team_rank( $team_id, $tier = FALSE ) {
         
         global $pxl, $wpdb;
         
