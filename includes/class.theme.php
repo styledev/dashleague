@@ -764,6 +764,7 @@
           );
           
           if ( $this->season_dates['locked'] ) {
+            if ( !isset($form_fields['profile']['dl_team']['attributes']) ) $form_fields['profile']['dl_team']['attributes'] = [];
             $form_fields['profile']['dl_team']['attributes'] = array_merge($form_fields['profile']['dl_team']['attributes'], ['disabled' => TRUE]);
           }
           
