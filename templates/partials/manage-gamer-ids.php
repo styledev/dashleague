@@ -24,6 +24,7 @@
     'order'          => 'ASC',
     'tax_query'      => [ [ 'taxonomy' => 'season', 'field' => 'slug', 'terms' => 'current' ] ]
   )), 'post_title', 'ID');
+  fns::log($competitors);
   
   $gamerids_players = array_column($wpdb->get_results("
     SELECT LOWER(pm.meta_value) as gamer_id, p.id as player
@@ -63,7 +64,7 @@
             $player_id = isset($gamerids_players[$player->id]) ? $gamerids_players[$player->id] : FALSE;
             
             if ( !$player_id ) {
-              $gamer_id = explode('-', $player->id);
+              $gamer_id  = explode('-', $player->id);
               $player_id = isset($gamerids_partial[$gamer_id[0]]) ? $gamerids_partial[$gamer_id[0]] : FALSE;
             }
             
@@ -119,7 +120,7 @@
           <tr>
             <th>Tag</th>
             <th>Name</th>
-            <th>Status</th>
+            <th width="10%">Status</th>
             <th>Gamer ID</th>
             <th>Gamer IDs</th>
             <th>Gamer IDs #</th>
@@ -135,26 +136,27 @@
             
             foreach ($player_ids as $player) {
               $player_id = FALSE;
-              $status    = '';
+              $status    = [];
               
               if ( !$player['record']['id'] ) {
-                $status = 'Player Not Found';
+                $status[] = '<div>Player Not Found</div>';
               }
               else if ( empty($player['record']['gamer_ids']) ) {
-                $status = 'Adding Gamer ID';
+                $status[] = '<div>Adding Gamer ID</div>';
                 update_field('gamer_id', $player['gamer_id'], $player['record']['id']);
               }
               else if ( count($player['gamer_ids']) == count($player['record']['gamer_ids']) && $player['gamer_ids'] != $player['record']['gamer_ids'] ) {
-                $status = sprintf('<a href="%s&gamer_id=%s" class="btn btn--small btn--ghost" target="_blank">Fix Gamer ID</button>', admin_url("post.php?post={$player['record']['id']}&action=edit"), $player['gamer_id']);
+                $status[] = sprintf('<a href="%s&gamer_id=%s" class="btn btn--small btn--ghost" target="_blank">Fix Gamer ID</button>', admin_url("post.php?post={$player['record']['id']}&action=edit"), $player['gamer_id']);
               }
               else if ( !in_array($player['gamer_id'], $player['record']['gamer_ids']) ) {
-                $status = sprintf('<a href="%s&gamer_id=%s" class="btn btn--small btn--ghost" target="_blank">Fix Gamer ID</button>', admin_url("post.php?post={$player['record']['id']}&action=edit"), $player['gamer_id']);
+                $status[] = sprintf('<a href="%s&gamer_id=%s" class="btn btn--small btn--ghost" target="_blank">Fix Gamer ID</button>', admin_url("post.php?post={$player['record']['id']}&action=edit"), $player['gamer_id']);
               }
               else if ( !$player['record']['team'] ) {
-                $status = 'Not Rostered';
+                $status[] = '<div>Not Rostered</div>';
               }
-              else if ( !$player['record']['matched'] ) {
-                $status = sprintf('<button class="btn btn--small btn--ghost" data-data=\'%s\'>Fix Name: %s</button>', json_encode($player, JSON_HEX_APOS), $player['record']['name']);
+              
+              if ( !$player['record']['matched'] && !empty($player['record']['name']) ) {
+                $status[] = sprintf('<button class="btn btn--small btn--ghost" data-data=\'%s\'>Fix Name: %s</button>', json_encode($player, JSON_HEX_APOS), $player['record']['name']);
               }
               
               $link_team = isset($_teams[$player['tag']]) ? admin_url("post.php?post={$_teams[$player['tag']]}&action=edit") : $player['tag'];
@@ -174,7 +176,7 @@
                 $player['tag'],
                 admin_url("post.php?post={$player['record']['id']}&action=edit"),
                 $player['name'],
-                $status,
+                implode("\r\n", $status),
                 implode("<br>", $player['gamer_ids']),
                 implode("<br>", $player['record']['gamer_ids']),
                 count($player['record']['gamer_ids']),

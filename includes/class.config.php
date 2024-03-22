@@ -44,7 +44,7 @@
         // gravity_form_enqueue_scripts(1, TRUE);
       }
       public function action_wp_body_open() {
-        the_field('scripts_body_start', 'options');
+        echo get_field('scripts_body_start', 'options');
       }
       public function action_wp_head() {
         echo '
@@ -66,10 +66,10 @@
         $template = get_page_template();
         if ( $template && strpos($template, 'page-account') > 0 ) acf_form_head();
         
-        the_field('scripts_head', 'options');
+        echo get_field('scripts_head', 'options');
       }
       public function action_wp_footer() {
-        the_field('scripts_body_end', 'options');
+        echo get_field('scripts_body_end', 'options');
       }
       
     // Hooks : Filters
