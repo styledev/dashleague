@@ -13,8 +13,10 @@
   
   $teams = [];
   foreach ($_teams as $_team => $team_id) {
-    $players = array_column(get_field('players', $team_id), 'ID');
-    $teams[$_team] = $players;
+    if ( $roster = get_field('players', $team_id) ) {
+      $players = array_column($roster, 'ID');
+      $teams[$_team] = $players;
+    }
   }
   
   $competitors = array_column(get_posts(array(

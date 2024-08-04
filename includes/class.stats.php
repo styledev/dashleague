@@ -415,13 +415,25 @@
         global $wpdb;
         
         $sql = $wpdb->prepare("
-          SELECT p.id
+          SELECT pm.post_id
           FROM {$wpdb->prefix}postmeta AS pm
-          JOIN {$wpdb->prefix}posts AS p ON p.id = pm.post_id
-          WHERE p.post_title = '%s' AND pm.meta_value = '%s'
-        ", $player['name'], $player['id']);
+          WHERE pm.meta_value = '%s'
+          GROUP BY pm.post_id
+        ", $player['id']);
         
-        return $wpdb->get_var($sql);
+        $matches = $wpdb->get_col($sql);
+        
+        if ( $player['id'] == '2fec85c4-e7f8-c1f2-4e4b-111fc067e7c3' ) {
+          $matches = [822];
+        }
+        
+        if ( empty($matches) || count($matches) > 1 ) {
+          fns::put($player);
+          fns::put($matches);
+          die;
+        }
+        
+        return $matches[0];
       }
       private function stats_to_data( $matchID, $game, $match ) {
         global $pxl, $wpdb;
