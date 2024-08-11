@@ -63,9 +63,7 @@ class dlAPI {
           
           _this.el.$buttonSubmit = e.target;
           
-          if ( action === 'fn' ) {
-            window[e.target.dataset.fn]();
-          }
+          if ( action === 'fn' ) window[e.target.dataset.fn]();
           
           _this[e.target.dataset.action](e.target);
         }

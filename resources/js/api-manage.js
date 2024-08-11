@@ -5,7 +5,7 @@ class apiManage extends dlAPI {
     super();
   }
   submitMatch( target ) {
-    var data = JSON.parse(target.dataset.data),
+    var data         = JSON.parse(target.dataset.data),
         confirmation = 'Are you absolutely sure?';
         
     // if ( confirm(confirmation) ) {

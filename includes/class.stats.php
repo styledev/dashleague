@@ -230,11 +230,8 @@
           }
         }
         else if ( $_SERVER['REQUEST_METHOD'] == 'POST' ) {
-          include('class.mmr.php');
-          
           $this->maps();
           
-          $mmr     = new dlMMR();
           $matchID = isset($_POST['matchID']) ? $_POST['matchID'] : FALSE;
           
           if ( $matchID ) {
@@ -244,12 +241,29 @@
             
             if ( $match ) {
               foreach ($match['games'] as $game) $data[] = $this->stats_to_data($matchID, $game, $match);
+              
+              $scoring = 'rank_points';
+              
+              switch ($scoring) {
+                case 'mmr':
+                  // include('class.mmr.php');
+                  // $mmr     = new dlMMR();
+                  // $mmr_gain = $mmr->match('MMR', $data);
+                  // $mmr->match('SR', $data, $mmr_gain);
+                break;
+                default:
+                  include('class.rank-points.php');
+                  
+                  $rp = new dlRP();
+                  $score = $rp->rank_data( $data );
+                  
+                  // $this->player_stats($score);
+                  // $this->team_stats($score);
+                break;
+              }
             }
             
-            $mmr_gain = $mmr->match('MMR', $data);
-            $mmr->match('SR', $data, $mmr_gain);
-            
-            $wpdb->query($wpdb->prepare("UPDATE dl_game_stats SET recorded = CURRENT_TIMESTAMP WHERE matchID = '%s'", $matchID));
+            // $wpdb->query($wpdb->prepare("UPDATE dl_game_stats SET recorded = CURRENT_TIMESTAMP WHERE matchID = '%s'", $matchID));
           }
           else {
             fns::error('NO MATCH ID then get $mmr->match($_POST);');
@@ -439,7 +453,7 @@
         global $pxl, $wpdb;
         
         $data = array(
-          'info' => array(
+          'info'  => array(
             'datetime' => $game['datetime'],
             'game_id'  => $game['game_id'],
             'map_id'   => $game['map'] ? $this->maps[$game['map']] : NULL,
