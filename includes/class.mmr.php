@@ -355,6 +355,7 @@
         global $wpdb;
         
         $data = array_merge($match, $team, $player);
+        
         $wpdb->insert('dl_players', $data);
       }
       private function store_team_stat( $match, $team ) {

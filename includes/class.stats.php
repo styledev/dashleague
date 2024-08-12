@@ -106,7 +106,7 @@
         
         $forfeit_type = $_POST['forfeit_type'];
         $matchID      = in_array($forfeit_type, array('match', 'map', 'double-forfeit')) ? "{$_POST['forfeit_date']}={$teams['forfeit']['team']->post_title}<>{$teams['opponent']['team']->post_title}" : $forfeit_type;
-        $datetime     = DateTime::createFromFormat("Ymd H:i", "{$_POST['forfeit_date']} 23:59");
+        $datetime     = DateTime::createFromFormat("Ymd H:i", "{$_POST['forfeit_date']} 00:00");
         
         switch ($forfeit_type) {
           case 'match':
@@ -235,30 +235,24 @@
           $matchID = isset($_POST['matchID']) ? $_POST['matchID'] : FALSE;
           
           if ( $matchID ) {
-            $data    = array();
+            $data    = [];
             $matches = $this->games(array('where' => "matchID = '{$matchID}'"));
             $match   = !empty($matches) ? $matches[$matchID] : FALSE;
             
             if ( $match ) {
               foreach ($match['games'] as $game) $data[] = $this->stats_to_data($matchID, $game, $match);
               
-              $scoring = 'rank_points';
+              $scoring = 'rank-points';
+              include("class.{$scoring}.php");
               
               switch ($scoring) {
                 case 'mmr':
-                  // include('class.mmr.php');
                   // $mmr     = new dlMMR();
                   // $mmr_gain = $mmr->match('MMR', $data);
                   // $mmr->match('SR', $data, $mmr_gain);
                 break;
                 default:
-                  include('class.rank-points.php');
-                  
-                  $rp = new dlRP();
-                  $score = $rp->rank_data( $data );
-                  
-                  // $this->player_stats($score);
-                  // $this->team_stats($score);
+                  new dlRP($data);
                 break;
               }
             }
@@ -442,8 +436,8 @@
         }
         
         if ( empty($matches) || count($matches) > 1 ) {
-          fns::put($player);
-          fns::put($matches);
+          fns::error($player);
+          fns::error($matches);
           die;
         }
         

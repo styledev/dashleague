@@ -2,79 +2,102 @@
   include('class.records.php');
   
   class dlRP extends dlRecords {
-    // private 
-    function __construct() {}
+    public $scoring;
     
-    public function rank_data( $data ) {
-      $maps    = count($data);
-      $teams   = array_column($data[0]['teams'], 'team_id', NULL);
-      $scoring = array_fill_keys(
-        array_column($data[0]['teams'], 'team_id', 'team_id'),
+    function __construct( $data ) {
+      parent::__construct($data);
+      
+      $this->scoring = array_fill_keys(
+        array_column($this->data[0]['teams'], 'team_id', 'team_id'),
         ['score' => 0, 'bonus' => 0]
       );
       
-      foreach ($data as $key => $match) $this->rank_match($match, $scoring);
-      
-      [$winner, $loser] = $this->rank_final(array_values($scoring), $maps);
-      
-      fns::error("Maps played: $maps");
-      fns::error("Winner is {$teams[$winner['id']]} with RP of {$winner['score']}");
-      fns::error("Loser is {$teams[$loser['id']]} with RP of {$loser['score']}");
-      
-      // next up we need to save team and player data
-      
-      return FALSE;
+      $this->rank_data();
     }
-    private function rank_match( $match, &$scoring ) {
+    
+    private function rank_data() {
+      $forfeit_match = FALSE;
+      
+      foreach ($this->data as $key => $match) {
+        $forfeit = $this->rank_match($match);
+        
+        if ( $forfeit ) {
+          $this->maps = 0;
+          break;
+        }
+      }
+      
+      $this->rank_final();
+      
+      fns::error($this->winner);
+      fns::error($this->loser);
+      
+      parent::record_stats();
+    }
+    private function rank_match( $match ) {
       $map   = $match['info']['map'];
       $teams = $match['teams'];
       
       // Outcome Score
-        if ( $teams[0]['outcome'] ) $scoring[$teams[0]['team_id']]['score']++;
-        if ( $teams[1]['outcome'] ) $scoring[$teams[1]['team_id']]['score']++;
+        if ( $teams[0]['outcome'] ) $this->scoring[$teams[0]['team_id']]['score']++;
+        if ( $teams[1]['outcome'] ) $this->scoring[$teams[1]['team_id']]['score']++;
+        
+      // Match Forfeit
+        if ( $match['info']['game_id'] == 'forfeit' ) {
+          if ( $teams[0]['outcome'] ) $this->scoring[$teams[0]['team_id']]['score'] = 3;
+          if ( $teams[1]['outcome'] ) $this->scoring[$teams[1]['team_id']]['score'] = 3;
+          
+          return TRUE;
+        }
         
       // Map Bonus Points
         $fn = "rank_bonus_{$match['info']['type']}";
         
         if ( method_exists($this, $fn) ) {
-          $this->$fn($scoring, $map, $teams, 0, 1);
-          $this->$fn($scoring, $map, $teams, 1, 0);
+          $this->$fn($map, $teams, 0, 1);
+          $this->$fn($map, $teams, 1, 0);
         }
+        
+      return FALSE;
     }
-    private function rank_bonus_domination( &$scoring, $map, $teams, $team, $opp ) {
+    private function rank_bonus_domination( $map, $teams, $team, $opp ) {
       if ( (int)$teams[$team]['score_points'] === 3 && (int)$teams[$opp]['score_points'] == 0 ) {
         $players_team = count($teams[$team]['players']);
         $players_opp  = count($teams[$opp]['players']);
         
-        if ( $players_team <= $players_opp ) $scoring[$teams[$team]['team_id']]['bonus']++;
+        if ( $players_team <= $players_opp ) $this->scoring[$teams[$team]['team_id']]['bonus']++;
       }
     }
-    private function rank_bonus_payload( &$scoring, $map, $teams, $team, $opp ) {
+    private function rank_bonus_payload( $map, $teams, $team, $opp ) {
       $qualifier = $map == 'pay_canyon' ? 100 : 90;
       
       if ( (float)$teams[$team]['score_percentage'] >= $qualifier && (float)$teams[$opp]['score_percentage'] <= 60.00 ) {
         $players_team = count($teams[$team]['players']);
         $players_opp  = count($teams[$opp]['players']);
         
-        if ( $players_team <= $players_opp ) $scoring[$teams[$team]['team_id']]['bonus']++;
+        if ( $players_team <= $players_opp ) $this->scoring[$teams[$team]['team_id']]['bonus']++;
       }
     }
-    private function rank_final( $scoring, $maps ) {
-      $outcome = [];
+    private function rank_final() {
+      $scoring    = array_values($this->scoring);
+      $comparison = $scoring[0]['score'] > $scoring[1]['score'];
       
-      if ( $scoring[0]['score'] > $scoring[1]['score'] ) {
-        $outcome['winner'] = ['id' => 0, 'score' => array_sum($scoring[0])];
-        $outcome['loser']  = ['id' => 1, 'score' => array_sum($scoring[1])];
-      }
-      else {
-        $outcome['winner'] = ['id' => 1, 'score' => array_sum($scoring[1])];
-        $outcome['loser']  = ['id' => 0, 'score' => array_sum($scoring[0])];
-      }
+      // Set Winnning Team
+        $this->winner = [
+          'team_id'   => $comparison ? $this->teams[0] : $this->teams[1],
+          'rank_gain' => $comparison ? array_sum($scoring[0]) : array_sum($scoring[1]),
+          'outcome'   => 1,
+        ];
       
-      // Bonus for winning in 2 maps
-        if ( $maps == 2 ) $outcome['winner']['score']++;
+      // Set Losing Team
+        $this->loser = [
+          'team_id'   => $comparison ? $this->teams[1] : $this->teams[0],
+          'rank_gain' => $comparison ? array_sum($scoring[1]) : array_sum($scoring[0]),
+          'outcome'   => 0,
+        ];
         
-      return array_values($outcome);
+      // Bonus for winning in 2 maps
+        if ( $this->maps == 2 ) $this->winner['rank_gain']++;
     }
   }
 }
